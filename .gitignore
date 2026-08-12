@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Database and uploaded media (the bundled samples ARE committed - see below)
+backend/data/*.db
+backend/data/*.db-journal
+backend/data/uploads/
+backend/data/.write_probe
+
+# The raw Hugging Face dashcam video is 294 MB - far too big for git, and it is
+# re-downloadable in one command (scripts/import_hf_dashcam.py). The 20 frames
+# EXTRACTED from it live in backend/data/samples_hf/ and ARE committed, so the
+# real-footage demo works on a fresh clone with no download at all.
+backend/data/hf_dashcam/
+
+# Hugging Face cache, if HF_HOME is pointed inside the repo
+.hf-cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+frontend/.env
+frontend/.env.local
+
+# Local tooling, not part of the project
+.claude/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# NOTE: backend/data/samples/ is deliberately NOT ignored. Those 16 frames are
+# committed so the demo works on a fresh clone with no extra steps.

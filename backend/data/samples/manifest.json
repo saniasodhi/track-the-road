@@ -1,0 +1,71 @@
+{
+  "synthetic": true,
+  "generator": "scripts/generate_samples.py",
+  "note": "Ground-truth wetness used to RENDER each frame. The pipeline never sees this - it is only here so you can sanity-check the estimates against what was actually drawn.",
+  "frames": [
+    {
+      "file": "frame_00.jpg",
+      "render_wetness": 0.99
+    },
+    {
+      "file": "frame_01.jpg",
+      "render_wetness": 0.97
+    },
+    {
+      "file": "frame_02.jpg",
+      "render_wetness": 0.95
+    },
+    {
+      "file": "frame_03.jpg",
+      "render_wetness": 0.92
+    },
+    {
+      "file": "frame_04.jpg",
+      "render_wetness": 0.88
+    },
+    {
+      "file": "frame_05.jpg",
+      "render_wetness": 0.86
+    },
+    {
+      "file": "frame_06.jpg",
+      "render_wetness": 0.85
+    },
+    {
+      "file": "frame_07.jpg",
+      "render_wetness": 0.83
+    },
+    {
+      "file": "frame_08.jpg",
+      "render_wetness": 0.74
+    },
+    {
+      "file": "frame_09.jpg",
+      "render_wetness": 0.63
+    },
+    {
+      "file": "frame_10.jpg",
+      "render_wetness": 0.52
+    },
+    {
+      "file": "frame_11.jpg",
+      "render_wetness": 0.41
+    },
+    {
+      "file": "frame_12.jpg",
+      "render_wetness": 0.3
+    },
+    {
+      "file": "frame_13.jpg",
+      "render_wetness": 0.2
+    },
+    {
+      "file": "frame_14.jpg",
+      "render_wetness": 0.11
+    },
+    {
+      "file": "frame_15.jpg",
+      "render_wetness": 0.04
+    }
+  ]
+}

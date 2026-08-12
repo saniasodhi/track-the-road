@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-sans text-body antialiased;
+    /* Digits must never change width, or the readout jitters as frames update. */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Weight 400 and 500 only. Nothing in this app is bold. */
+  h1, h2, h3, h4, strong, b {
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  /* The signature of the style: a small tracked-out label above every value. */
+  .label-micro {
+    @apply font-sans text-micro uppercase text-ink-faint;
+    font-weight: 500;
+  }
+
+  .hairline-t {
+    @apply border-t border-hairline;
+  }
+
+  .num {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Animation. Only opacity and transform are ever animated - never width,
+   height, top or margin - so everything stays on the compositor and holds
+   60fps on integrated graphics.
+   --------------------------------------------------------------------------- */
+
+@keyframes ts-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ts-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ts-hero-word {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  12%,
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.anim-fade-up {
+  animation: ts-fade-up 240ms ease-out both;
+}
+
+.anim-fade-in {
+  animation: ts-fade-in 200ms ease-out both;
+}
+
+/* 200ms crossfade whenever the condition label changes. */
+.anim-condition {
+  animation: ts-fade-in 200ms ease-out both;
+}
+
+.anim-hero-word {
+  animation: ts-hero-word 2500ms ease-in-out both;
+}
+
+/* Landing screen: real track photographs cross-fading, very slowly scaling. */
+.landing-frame {
+  opacity: 0;
+  transform: scale(1);
+  transition: opacity 900ms ease-in-out;
+  will-change: opacity, transform;
+}
+
+.landing-frame[data-active="true"] {
+  opacity: 1;
+  animation: ts-landing-drift 8000ms linear both;
+}
+
+@keyframes ts-landing-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.04);
+  }
+}
+
+/* Timeline segments fill in as each frame's result lands. */
+.segment {
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .landing-frame[data-active="true"] {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* Recharts: strip the default focus outline on the surface. */
+.recharts-wrapper:focus,
+.recharts-surface:focus {
+  outline: none;
+}

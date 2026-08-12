@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "CLIP prompt bank for TrackSense AI (pipeline step 1).",
+    "Each category holds several phrasings of the same idea. At startup every phrase is",
+    "turned into a CLIP text embedding, the embeddings for a category are averaged, and the",
+    "average is re-normalised. That averaged vector is the 'prototype' for the category.",
+    "Prompt ensembling like this is measurably more stable than relying on one sentence.",
+    "",
+    "You can edit these freely and restart the backend - no code changes needed.",
+    "Rules: keep exactly the three categories 'dry', 'damp' and 'wet', and keep at least",
+    "one phrase in each. 3-4 phrases per category is the sweet spot."
+  ],
+  "model_id": "openai/clip-vit-base-patch32",
+  "categories": {
+    "dry": [
+      "a dry asphalt race track",
+      "dry road surface in bright sunlight",
+      "grey dry tarmac with no reflections",
+      "a dusty dry racing circuit in good conditions"
+    ],
+    "damp": [
+      "a damp race track surface",
+      "slightly wet asphalt with patchy moisture",
+      "a road drying after rain with dark damp patches",
+      "greasy damp tarmac with a few small wet spots"
+    ],
+    "wet": [
+      "a soaking wet race track",
+      "standing water on asphalt with bright reflections",
+      "heavy rain on a road with visible spray",
+      "a flooded racing circuit with deep puddles"
+    ]
+  }
+}

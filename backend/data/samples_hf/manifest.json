@@ -1,0 +1,112 @@
+{
+  "synthetic": false,
+  "source": "Hugging Face dataset",
+  "repo_id": "aap9002/UK-Road-DashCam",
+  "file": "241220_125301_002_RH.MP4",
+  "url": "https://huggingface.co/datasets/aap9002/UK-Road-DashCam",
+  "filmed": "2024-12-20, UK roads",
+  "crop": "top 75% of each frame (removes the car bonnet and the timestamp overlay)",
+  "note": "Frames come from a moving car, so this shows wetness along a route rather than one place drying over time. There is no ground-truth wetness label - the values are estimates only.",
+  "frames": [
+    {
+      "file": "hf_00.jpg",
+      "source_frame": 257,
+      "timestamp_s": 8.58
+    },
+    {
+      "file": "hf_01.jpg",
+      "source_frame": 514,
+      "timestamp_s": 17.15
+    },
+    {
+      "file": "hf_02.jpg",
+      "source_frame": 771,
+      "timestamp_s": 25.73
+    },
+    {
+      "file": "hf_03.jpg",
+      "source_frame": 1029,
+      "timestamp_s": 34.33
+    },
+    {
+      "file": "hf_04.jpg",
+      "source_frame": 1286,
+      "timestamp_s": 42.91
+    },
+    {
+      "file": "hf_05.jpg",
+      "source_frame": 1543,
+      "timestamp_s": 51.48
+    },
+    {
+      "file": "hf_06.jpg",
+      "source_frame": 1800,
+      "timestamp_s": 60.06
+    },
+    {
+      "file": "hf_07.jpg",
+      "source_frame": 2057,
+      "timestamp_s": 68.64
+    },
+    {
+      "file": "hf_08.jpg",
+      "source_frame": 2314,
+      "timestamp_s": 77.21
+    },
+    {
+      "file": "hf_09.jpg",
+      "source_frame": 2571,
+      "timestamp_s": 85.79
+    },
+    {
+      "file": "hf_10.jpg",
+      "source_frame": 2829,
+      "timestamp_s": 94.39
+    },
+    {
+      "file": "hf_11.jpg",
+      "source_frame": 3086,
+      "timestamp_s": 102.97
+    },
+    {
+      "file": "hf_12.jpg",
+      "source_frame": 3343,
+      "timestamp_s": 111.54
+    },
+    {
+      "file": "hf_13.jpg",
+      "source_frame": 3600,
+      "timestamp_s": 120.12
+    },
+    {
+      "file": "hf_14.jpg",
+      "source_frame": 3857,
+      "timestamp_s": 128.7
+    },
+    {
+      "file": "hf_15.jpg",
+      "source_frame": 4114,
+      "timestamp_s": 137.27
+    },
+    {
+      "file": "hf_16.jpg",
+      "source_frame": 4371,
+      "timestamp_s": 145.85
+    },
+    {
+      "file": "hf_17.jpg",
+      "source_frame": 4629,
+      "timestamp_s": 154.45
+    },
+    {
+      "file": "hf_18.jpg",
+      "source_frame": 4886,
+      "timestamp_s": 163.03
+    },
+    {
+      "file": "hf_19.jpg",
+      "source_frame": 5143,
+      "timestamp_s": 171.6
+    }
+  ]
+}
