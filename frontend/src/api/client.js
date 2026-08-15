@@ -70,6 +70,10 @@ export const api = {
     return request(`/api/sessions/${id}/frames`, { method: "POST", body: form });
   },
 
+  /** Re-score an existing session against the detectors registered right now. */
+  rescoreHazards: (id) =>
+    request(`/api/sessions/${id}/rescore-hazards`, { method: "POST" }),
+
   listHazards: () => request("/api/hazards"),
 
   addHazard: (label) =>

@@ -10,6 +10,7 @@ upload, no camera and no network, and it always produces the same curve.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import tempfile
@@ -23,7 +24,9 @@ from sqlalchemy.orm import Session as DbSession
 
 from ..db import UPLOAD_DIR, DATA_DIR, get_db
 from ..models import Frame, Session as TrackSession
-from ..pipeline.orchestrator import process_frame
+from ..pipeline.orchestrator import (
+    decode_image, get_classifier, get_hazards, process_frame, resize_for_clip,
+)
 from ..sample_source import active_source_name, resolve_sample_dir
 from . import frame_to_dict
 from .sessions import get_session_or_404, session_to_dict
@@ -263,6 +266,67 @@ def run_demo(session_id: int, source: str | None = None,
         "source": source or active_source_name(),
         "using_real_photos": using_real,
         "seconds": round(time.perf_counter() - started, 2),
+    }
+
+
+@router.post("/{session_id}/rescore-hazards")
+def rescore_hazards(session_id: int, db: DbSession = Depends(get_db)) -> dict:
+    """Re-run zero-shot hazard detection over every frame already in a session.
+
+    Why this exists: detectors are created at runtime, so a detector added at
+    12:05 has never seen the frames analysed at 12:04. Without this the new
+    detector appears on screen with no reading against it until fresh frames
+    arrive - which is fine for a live camera, and useless for a recorded
+    session you are looking at right now.
+
+    Only the hazard layer is recomputed. Wetness, trend, zones and the tyre
+    call are untouched, so re-scoring can never change the reading - it only
+    fills in the column that was missing.
+
+    Cost is one CLIP image pass per frame (~85 ms), because the image vector is
+    not stored. For a 20-frame session that is under two seconds.
+    """
+    session = get_session_or_404(db, session_id)
+
+    clf = get_classifier()
+    watch = get_hazards()
+    if not clf.available or not watch.ready:
+        raise HTTPException(
+            status_code=503,
+            detail="CLIP is not loaded, so hazards cannot be scored.",
+        )
+
+    frames = db.execute(
+        select(Frame).where(Frame.session_id == session_id).order_by(Frame.frame_index)
+    ).scalars().all()
+
+    started = time.perf_counter()
+    updated = 0
+    for frame in frames:
+        path = (DATA_DIR / frame.image_path).resolve()
+        if not path.is_file():
+            # Frame image was cleaned up or lives outside the media root.
+            continue
+        try:
+            pil, _ = decode_image(path.read_bytes())
+            probs = clf.classify(resize_for_clip(pil))
+            hits = watch.detect(probs["image_vector"], clf.logit_scale)
+            frame.hazards_json = json.dumps(hits) if hits else None
+            updated += 1
+        except Exception as exc:
+            log.warning("Could not re-score frame %s: %s", frame.id, exc)
+
+    db.commit()
+
+    refreshed = db.execute(
+        select(Frame).where(Frame.session_id == session_id).order_by(Frame.frame_index)
+    ).scalars().all()
+
+    return {
+        "session_id": session_id,
+        "rescored": updated,
+        "seconds": round(time.perf_counter() - started, 2),
+        "frames": [frame_to_dict(f) for f in refreshed],
     }
 
 
