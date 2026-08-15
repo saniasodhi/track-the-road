@@ -48,7 +48,7 @@ export default function HazardWatch({ hazards, detections, onAdd, onRemove, busy
         )}
       </div>
 
-      <form onSubmit={submit} className="mt-2.5 flex gap-2">
+      <form onSubmit={submit} className="mt-2 flex gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -68,7 +68,7 @@ export default function HazardWatch({ hazards, detections, onAdd, onRemove, busy
         </button>
       </form>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {hazards.length === 0 && (
           <span className="text-[11px] text-ink-faint">
             {disabled
@@ -118,8 +118,8 @@ export default function HazardWatch({ hazards, detections, onAdd, onRemove, busy
         })}
       </div>
 
-      <p className="mt-2 text-[11px] leading-[1.5] text-ink-faint">
-        Detectors are built from a sentence, not from training data — nothing is retrained.
+      <p className="mt-1.5 truncate text-[11px] leading-[1.5] text-ink-faint">
+        Built from a sentence, not training data — nothing is retrained.
       </p>
     </div>
   );

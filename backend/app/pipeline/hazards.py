@@ -182,6 +182,11 @@ class HazardWatch:
         if not label:
             raise ValueError("A hazard needs a name")
 
+        # Two detectors with the same name are indistinguishable on screen and
+        # score identically, so there is no reason to allow it.
+        if any(h["label"].lower() == label.lower() for h in self._hazards):
+            raise ValueError(f"A detector called {label!r} already exists")
+
         prompts = [p.strip() for p in (prompts or []) if p and p.strip()]
         if not prompts:
             noun = label.lower()

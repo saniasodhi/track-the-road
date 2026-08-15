@@ -20,6 +20,22 @@
   h1, h2, h3, h4, strong, b {
     font-weight: 500;
   }
+
+  /* Keyboard focus has to be visible, and it has to be visible on the dark
+     controls as well as the light ones. :focus-visible rather than :focus so a
+     mouse click never leaves a ring behind. */
+  :focus-visible {
+    outline: 2px solid theme("colors.ink");
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* On an ink-filled control the ink outline would disappear into it. */
+  .bg-ink:focus-visible,
+  .bg-accent:focus-visible {
+    outline-color: theme("colors.canvas");
+    outline-offset: -4px;
+  }
 }
 
 @layer components {

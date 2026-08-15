@@ -8,14 +8,13 @@
  */
 
 function Tile({ label, value, caption, weight }) {
-  const pct = Math.round((value ?? 0) * 100);
   return (
-    <div className="flex-1 rounded-lg border border-hairline bg-surface-sunk px-4 py-3">
+    <div className="flex-1 rounded-lg border border-hairline bg-surface-sunk px-4 py-2.5">
       <div className="flex items-baseline justify-between">
         <span className="label-micro">{label}</span>
         <span className="num text-[10px] text-ink-faint">{weight}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
+      <div className="mt-1.5 flex items-baseline gap-2">
         <span
           className="num text-[26px] text-ink"
           style={{ fontWeight: 500, letterSpacing: "-0.035em" }}
@@ -24,15 +23,13 @@ function Tile({ label, value, caption, weight }) {
         </span>
       </div>
       {/* A 1px rule that fills to the value. Transform-only, so it is free. */}
-      <div className="mt-2.5 h-px w-full bg-hairline">
+      <div className="mt-2 h-px w-full bg-hairline">
         <div
           className="h-px origin-left bg-ink transition-transform duration-200 ease-out"
           style={{ transform: `scaleX(${Math.min(Math.max(value ?? 0, 0), 1)})` }}
         />
       </div>
-      <p className="mt-2 text-[11px] leading-[1.5] text-ink-muted">
-        {caption} <span className="num text-ink-faint">{pct}%</span>
-      </p>
+      <p className="mt-1.5 truncate text-[11px] leading-[1.5] text-ink-muted">{caption}</p>
     </div>
   );
 }
@@ -48,15 +45,15 @@ export default function SignalTiles({ frame }) {
         weight="×0.65"
         caption={
           usingFallback
-            ? "Unavailable — running on the fallback."
-            : "What the vision-language model reads in the scene."
+            ? "Unavailable — running on the fallback"
+            : "Hugging Face CLIP reading the scene"
         }
       />
       <Tile
         label="Signal 02 — Optics"
         value={frame?.physical_wetness}
         weight={usingFallback ? "×1.00" : "×0.35"}
-        caption="Shine, darkness, colour and texture, measured directly."
+        caption="Shine, darkness, colour, texture"
       />
     </div>
   );

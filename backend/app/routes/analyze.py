@@ -99,9 +99,15 @@ async def upload_frame(
             timestamp_s=float(index),
         )
     except Exception as exc:
+        # The real traceback goes to the log; the user gets something readable.
+        # Pillow's own message quotes a BytesIO object, which is noise to anyone
+        # who is simply holding the wrong file.
         log.exception("Pipeline failed on uploaded frame")
-        raise HTTPException(status_code=422,
-                            detail=f"Could not analyse that image: {exc}") from exc
+        raise HTTPException(
+            status_code=422,
+            detail=f"That file could not be read as an image. "
+                   f"JPEG, PNG, BMP and WebP all work. ({dest.name})",
+        ) from exc
 
     return frame_to_dict(frame, detail)
 

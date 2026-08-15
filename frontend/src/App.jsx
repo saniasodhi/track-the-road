@@ -88,7 +88,7 @@ function TopBar({ session, health, modelUsed, children }) {
   const short = model.includes("/") ? model.split("/").pop() : model;
 
   return (
-    <header className="flex shrink-0 items-center justify-between border-b border-hairline px-6 py-3.5">
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-b border-hairline px-6 py-3.5">
       <div className="flex items-baseline gap-4">
         <span
           className="font-display text-[15px] text-ink"
@@ -98,7 +98,7 @@ function TopBar({ session, health, modelUsed, children }) {
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {children}
         <div className="flex items-center gap-2.5">
           {/* The model pill links to the actual model on Hugging Face, so
@@ -237,7 +237,10 @@ export default function App() {
       : "#12100E";
 
   return (
-    <div className="anim-fade-in flex h-screen flex-col overflow-hidden bg-canvas">
+    /* One locked screen on a laptop; below that it reflows and is allowed to
+       scroll, because a squeezed-but-unscrollable layout is worse than a tall
+       one. */
+    <div className="anim-fade-in flex min-h-screen flex-col bg-canvas lg:h-screen lg:overflow-hidden">
       <TopBar session={s.session} health={s.health} modelUsed={current?.model_used}>
         <Uploader
           onDemo={(src) => { cam.stop(); s.runDemo(src); }}
@@ -293,7 +296,7 @@ export default function App() {
 
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_minmax(380px,38%)]">
         {/* ---------------------------------------------- what is it now --- */}
-        <section className="flex min-h-0 flex-col gap-4 border-r border-hairline p-6">
+        <section className="flex min-h-0 flex-col gap-3.5 border-b border-hairline p-5 lg:border-b-0 lg:border-r">
           <FrameViewer
             frame={current}
             index={s.selected}

@@ -12,20 +12,31 @@
 
 import { conditionColour, conditionTint } from "./ConditionBadge";
 
-export default function ZoneOverlay({ zones, worst }) {
+const FULL_VIEW = { x: 0, y: 0, w: 1, h: 1 };
+
+export default function ZoneOverlay({ zones, worst, view = FULL_VIEW }) {
   if (!zones?.length) return null;
 
   const measured = zones.filter((z) => z.measured);
   if (!measured.length) return null;
 
+  /** Image coordinate -> panel percentage, accounting for the crop. */
+  const toPanel = ([x, y]) => [
+    ((x - view.x) / view.w) * 100,
+    ((y - view.y) / view.h) * 100,
+  ];
+
   return (
     <div className="pointer-events-none absolute inset-0">
-      {/* preserveAspectRatio="none" lets a 0-1 viewBox map straight onto the
-          frame however it is cropped. Only shapes go in here - text would be
-          stretched, so labels are positioned separately below. */}
+      {/* The viewBox is the slice of the image that survived the crop, so a
+          quad drawn at image coordinate (0.5, 0.9) lands on the pixel that
+          actually is at (0.5, 0.9) of the photograph. preserveAspectRatio is
+          off because the panel and that slice are the same shape by
+          construction. Shapes only - text would be stretched, so the labels
+          are positioned separately below. */}
       <svg
         className="h-full w-full"
-        viewBox="0 0 1 1"
+        viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
         preserveAspectRatio="none"
         aria-hidden="true"
       >
@@ -45,9 +56,11 @@ export default function ZoneOverlay({ zones, worst }) {
       </svg>
 
       {measured.map((z) => {
-        // Centroid of the trapezoid, as a percentage of the frame.
-        const cx = (z.quad.reduce((sum, p) => sum + p[0], 0) / z.quad.length) * 100;
-        const cy = (z.quad.reduce((sum, p) => sum + p[1], 0) / z.quad.length) * 100;
+        // Centroid of the trapezoid, mapped through the same crop as the shapes.
+        const mx = z.quad.reduce((sum, p) => sum + p[0], 0) / z.quad.length;
+        const my = z.quad.reduce((sum, p) => sum + p[1], 0) / z.quad.length;
+        const [cx, cy] = toPanel([mx, my]);
+        if (cx < -5 || cx > 105 || cy < -5 || cy > 105) return null;  // cropped out
         const isWorst = z.name === worst;
         return (
           <span
