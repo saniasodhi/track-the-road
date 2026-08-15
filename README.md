@@ -19,6 +19,11 @@ Give it camera frames. It answers four questions:
 
 It also scores a **3×3 grid of the road**, because tracks do not dry evenly. It can tell you "the track is drying, but the near left is still standing in water."
 
+Two things it does that a trained classifier cannot:
+
+- **Point it at a live camera.** Frames from your webcam go through the exact same four-step pipeline as the bundled ones — no special path in the backend.
+- **Teach it a new hazard by typing one sentence.** Type "black ice" and a working detector exists ~150 ms later. No training data, no labelling, no retraining, no redeploy.
+
 ---
 
 ## Why it matters beyond racing
@@ -141,6 +146,29 @@ A track does not dry evenly — the racing line dries first, the edges hold wate
 On real dashcam footage this gives: frame reads DAMP at 0.47 overall, near-left cell reads 0.66 — genuinely wet. The app says *"still wet on the near left."*
 
 *Honest note:* the zones use the optics only, not CLIP. Nine extra CLIP passes per frame would be nine times slower, and CLIP handed a bare tile of tarmac loses the context that makes it good. So CLIP and optics set the overall **level**; the per-cell optics describe the **shape** around it.
+
+### Zero-shot hazard watch — the part a trained model cannot do
+
+The pipeline classifies dry / damp / wet because those are the three things we wrote descriptions for. **Nothing about the architecture is limited to three.**
+
+CLIP compares an image against *any* sentence. So a brand-new detector costs one sentence and zero training data. Type "black ice" into the dashboard and a black-ice detector exists about 150 milliseconds later — the phrasings are embedded once and cached. There is nothing to train, because there is nothing being fitted.
+
+This is the actual reason to build on a vision-language model instead of training a classifier. A model trained on a fixed label set physically cannot gain a new class without new labelled images and a retraining run.
+
+**How each detector is scored.** Every hazard is a binary question asked independently of the others: *does this look more like the hazard, or like an ordinary road?* We embed the hazard's phrasings into one prototype, embed a fixed set of "ordinary road" references into another, and softmax the two similarities at CLIP's own temperature.
+
+Scoring against a neutral baseline — rather than putting all hazards in one softmax — matters: detectors do not compete, a frame can legitimately trigger two at once (wet *and* foggy), and the number stays interpretable.
+
+Measured on the bundled frames:
+
+| | Black ice | Snow | Fog |
+|---|---|---|---|
+| Soaked frame | 22.6% | 1.9% | 8.9% |
+| Dry frame | 0.3% | 0.0% | 0.1% |
+
+The dry road triggers nothing. The wet one shows elevated black-ice similarity — and that is not a bug. Wet and icy asphalt genuinely look alike, which is precisely why black ice is dangerous.
+
+Each hazard costs two dot products per frame, because it reuses the image vector CLIP already computed. Per-frame latency is unchanged at ~85 ms.
 
 ### Step 3 — Stop it flickering
 

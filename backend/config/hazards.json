@@ -1,0 +1,28 @@
+{
+  "_comment": "Zero-shot hazard detectors. Each one is just a label and a few descriptions - CLIP does the rest, with no training data. Edit freely, or add them live from the dashboard.",
+  "hazards": [
+    {
+      "label": "Black ice",
+      "prompts": [
+        "a road covered in black ice",
+        "an icy road surface with a thin transparent glaze",
+        "a frozen road in freezing conditions"
+      ]
+    },
+    {
+      "label": "Snow",
+      "prompts": [
+        "a road covered in snow",
+        "a snowy road surface",
+        "a road under a layer of fresh snow"
+      ]
+    },
+    {
+      "label": "Fog",
+      "prompts": [
+        "a road in thick fog with very low visibility",
+        "a foggy road where the distance disappears into haze"
+      ]
+    }
+  ]
+}

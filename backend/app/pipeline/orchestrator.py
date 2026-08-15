@@ -47,6 +47,7 @@ from ..db import CONFIG_DIR
 from ..models import Frame, Session as TrackSession
 from . import cv_features, smoothing, trend as trend_mod, zones as zones_mod
 from .clip_classifier import ClipTrackClassifier, clip_wetness_from_probs
+from .hazards import HazardWatch
 
 log = logging.getLogger("tracksense.pipeline")
 
@@ -57,6 +58,7 @@ CLIP_WEIGHT = 0.65         # weight of the CLIP signal in the fused score
 # Single shared model instance. Loaded once at application startup.
 # ---------------------------------------------------------------------------
 _classifier: Optional[ClipTrackClassifier] = None
+_hazards: Optional[HazardWatch] = None
 
 
 def get_classifier() -> ClipTrackClassifier:
@@ -66,11 +68,21 @@ def get_classifier() -> ClipTrackClassifier:
     return _classifier
 
 
+def get_hazards() -> HazardWatch:
+    global _hazards
+    if _hazards is None:
+        _hazards = HazardWatch(CONFIG_DIR / "hazards.json")
+    return _hazards
+
+
 def startup_load() -> ClipTrackClassifier:
     """Called once from the FastAPI lifespan handler."""
     clf = get_classifier()
     if not clf.available and clf.load_error is None:
         clf.load()
+    watch = get_hazards()
+    if clf.available and not watch.ready:
+        watch.load(clf)
     return clf
 
 
@@ -158,12 +170,23 @@ def process_frame(
     probs = {"p_dry": 0.0, "p_damp": 0.0, "p_wet": 0.0}
     clip_w = None
 
+    hazard_hits: list[dict] = []
+
     if clf.available:
         try:
             probs_full = clf.classify(resize_for_clip(pil))
             probs = {k: probs_full[k] for k in ("p_dry", "p_damp", "p_wet")}
             clip_w = clip_wetness_from_probs(**probs)
             model_used = clf.model_id
+
+            # Zero-shot hazard watch, reusing the image vector CLIP just built.
+            # Two dot products per detector, so this costs almost nothing.
+            try:
+                hazard_hits = get_hazards().detect(
+                    probs_full["image_vector"], clf.logit_scale
+                )
+            except Exception as exc:
+                log.warning("Hazard detection failed on frame %s: %s", frame_index, exc)
         except Exception as exc:                      # inference blew up mid-demo
             clip_error = f"{type(exc).__name__}: {exc}"
             log.warning("CLIP inference failed on frame %s: %s", frame_index, clip_error)
@@ -232,6 +255,7 @@ def process_frame(
         model_used=model_used,
         latency_ms=round(latency_ms, 1),
         zones_json=json.dumps({"cells": zone_cells, "summary": zone_summary}),
+        hazards_json=json.dumps(hazard_hits) if hazard_hits else None,
     )
     db.add(frame)
     session.frame_count = len(smooth_hist)

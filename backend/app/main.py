@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .db import CONFIG_DIR, DATA_DIR, DB_PATH, db_status, init_db
 from .pipeline.orchestrator import startup_load
-from .routes import analyze, health, sessions
+from .routes import analyze, hazards, health, sessions
 from .sample_source import describe_samples
 
 load_dotenv()
@@ -140,6 +140,7 @@ app.mount("/media", StaticFiles(directory=str(DATA_DIR)), name="media")
 app.include_router(health.router)
 app.include_router(sessions.router)
 app.include_router(analyze.router)
+app.include_router(hazards.router)
 
 
 @app.get("/")

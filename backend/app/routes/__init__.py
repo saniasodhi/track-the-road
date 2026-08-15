@@ -62,6 +62,13 @@ def frame_to_dict(frame: Frame, detail: dict | None = None) -> dict:
         except (ValueError, AttributeError) as exc:
             log.warning("Frame %s has unreadable zone data: %s", frame.id, exc)
 
+    hazards = []
+    if frame.hazards_json:
+        try:
+            hazards = json.loads(frame.hazards_json) or []
+        except (ValueError, AttributeError) as exc:
+            log.warning("Frame %s has unreadable hazard data: %s", frame.id, exc)
+
     return {
         "id": frame.id,
         "session_id": frame.session_id,
@@ -94,6 +101,8 @@ def frame_to_dict(frame: Frame, detail: dict | None = None) -> dict:
         "plain": detail.get("plain", ""),
         "zones": zone_cells,
         "zone_summary": zone_summary,
+        "hazards": hazards,
+        "hazards_triggered": [h for h in hazards if h.get("triggered")],
         "model_used": frame.model_used,
         "latency_ms": frame.latency_ms,
         "cv_subscores": detail.get("cv_subscores"),

@@ -32,7 +32,9 @@ const SOURCE_LABEL = {
   real: "My photos",
 };
 
-export default function Uploader({ onDemo, onImages, onVideo, busy, sources }) {
+export default function Uploader({
+  onDemo, onImages, onVideo, busy, sources, onLive, live, liveStarting,
+}) {
   const imageInput = useRef(null);
   const videoInput = useRef(null);
 
@@ -44,6 +46,22 @@ export default function Uploader({ onDemo, onImages, onVideo, busy, sources }) {
 
   return (
     <div className="flex items-center gap-2">
+      {/* Live camera first: it is the one control that makes this a tool you
+          can point at something rather than a recording you watch. */}
+      <button
+        type="button"
+        onClick={onLive}
+        disabled={busy && !live}
+        className={`rounded-md border px-3 py-1.5 text-[12px] transition-opacity duration-200 disabled:opacity-40 ${
+          live
+            ? "border-accent bg-accent text-canvas"
+            : "border-hairline bg-surface text-ink-muted hover:text-ink"
+        }`}
+        style={{ fontWeight: 500 }}
+      >
+        {live ? "Stop live" : liveStarting ? "Opening…" : "Live camera"}
+      </button>
+
       {buttons.map((key, i) => (
         <Control
           key={key}

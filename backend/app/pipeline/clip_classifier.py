@@ -196,7 +196,35 @@ class ClipTrackClassifier:
             "p_damp": float(probs[1]),
             "p_wet": float(probs[2]),
             "similarities": {c: float(s) for c, s in zip(CATEGORY_ORDER, sims)},
+            # The image only has to be encoded once per frame. Handing the
+            # vector back lets the zero-shot hazard watch reuse it for free
+            # instead of paying for a second forward pass.
+            "image_vector": img_vec,
         }
+
+    # ------------------------------------------------------- zero-shot extras
+
+    def embed_prompts(self, phrases: list[str]) -> np.ndarray:
+        """Turn any list of sentences into one averaged, normalised prototype.
+
+        This is what makes a brand-new detector possible at runtime: describe a
+        thing in words, get a vector, compare it to images. No training data, no
+        labels, no retraining - the same trick the three wetness classes use.
+        """
+        if not self.available:
+            raise RuntimeError(self.load_error or "CLIP is not loaded")
+        torch = self._torch
+        inputs = self._processor(text=phrases, return_tensors="pt", padding=True)
+        with torch.no_grad():
+            feats = self._model.get_text_features(**inputs)
+        feats = feats / feats.norm(dim=-1, keepdim=True)
+        mean = feats.mean(dim=0)
+        mean = mean / mean.norm()
+        return mean.cpu().numpy().astype(np.float32)
+
+    @property
+    def logit_scale(self) -> float:
+        return self._logit_scale
 
     # ------------------------------------------------------------------ misc
 

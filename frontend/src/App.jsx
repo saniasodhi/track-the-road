@@ -9,8 +9,11 @@
  *          what should I do    the tyre call
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api } from "./api/client";
+import { useLiveCamera } from "./hooks/useLiveCamera";
 import { useSession } from "./hooks/useSession";
+import HazardWatch from "./components/HazardWatch";
 import ConditionBadge, { conditionColour } from "./components/ConditionBadge";
 import FrameTimeline from "./components/FrameTimeline";
 import FrameViewer from "./components/FrameViewer";
@@ -138,6 +141,64 @@ export default function App() {
   // wet" and "the track is drying but the near left is still standing in water".
   const [showZones, setShowZones] = useState(true);
 
+  // ---- zero-shot hazard detectors ------------------------------------------
+  const [hazards, setHazards] = useState([]);
+  const [hazardBusy, setHazardBusy] = useState(false);
+
+  const refreshHazards = useCallback(async () => {
+    try {
+      const res = await api.listHazards();
+      setHazards(res.hazards || []);
+    } catch {
+      setHazards([]);
+    }
+  }, []);
+
+  useEffect(() => { refreshHazards(); }, [refreshHazards]);
+
+  const addHazard = useCallback(async (label) => {
+    setHazardBusy(true);
+    try {
+      const res = await api.addHazard(label);
+      setHazards((prev) => [...prev, res.hazard]);
+    } catch (err) {
+      s.setError(err.message);
+    } finally {
+      setHazardBusy(false);
+    }
+  }, [s]);
+
+  const removeHazard = useCallback(async (id) => {
+    setHazardBusy(true);
+    try {
+      await api.removeHazard(id);
+      setHazards((prev) => prev.filter((h) => h.id !== id));
+    } catch (err) {
+      s.setError(err.message);
+    } finally {
+      setHazardBusy(false);
+    }
+  }, [s]);
+
+  // ---- live camera ---------------------------------------------------------
+  const cam = useLiveCamera({
+    onFrame: s.pushFrame,
+    onError: s.setError,
+  });
+
+  const toggleLive = useCallback(async () => {
+    if (cam.active || cam.starting) {
+      cam.stop();
+      return;
+    }
+    try {
+      const sessionId = await s.startLiveSession();
+      await cam.start(sessionId);
+    } catch (err) {
+      s.setError(err.message);
+    }
+  }, [cam, s]);
+
   const current = s.current;
   const displayed = useCountUp(current ? current.wetness_smoothed : null);
 
@@ -152,10 +213,10 @@ export default function App() {
   const autoStarted = useRef(false);
   useEffect(() => {
     if (screen !== "dashboard" || autoStarted.current) return;
-    if (!s.health || s.busy) return;
+    if (!s.health || s.busy || cam.active || cam.starting) return;
     autoStarted.current = true;
     s.runDemo("bundled");
-  }, [screen, s.health, s.busy, s.runDemo]);
+  }, [screen, s.health, s.busy, s.runDemo, cam.active, cam.starting]);
 
   if (screen === "landing") {
     return <Landing health={s.health} onStart={startSession} leaving={leaving} />;
@@ -179,11 +240,14 @@ export default function App() {
     <div className="anim-fade-in flex h-screen flex-col overflow-hidden bg-canvas">
       <TopBar session={s.session} health={s.health} modelUsed={current?.model_used}>
         <Uploader
-          onDemo={s.runDemo}
-          onImages={s.uploadImages}
-          onVideo={s.uploadVideo}
+          onDemo={(src) => { cam.stop(); s.runDemo(src); }}
+          onImages={(files) => { cam.stop(); s.uploadImages(files); }}
+          onVideo={(file) => { cam.stop(); s.uploadVideo(file); }}
           busy={s.busy}
           sources={s.health?.samples?.sources}
+          onLive={toggleLive}
+          live={cam.active}
+          liveStarting={cam.starting}
         />
       </TopBar>
 
@@ -236,10 +300,13 @@ export default function App() {
             total={s.expectedTotal || 1}
             showZones={showZones}
             onToggleZones={() => setShowZones((v) => !v)}
+            videoRef={cam.videoRef}
+            live={cam.active}
+            liveStarting={cam.starting}
             empty={
               s.busy
                 ? "Analysing…"
-                : "Press Run demo to analyse the bundled track sequence, or add your own frames."
+                : "Press Live camera to point this at a real surface, or Run demo for the bundled sequence."
             }
           />
 
@@ -251,6 +318,17 @@ export default function App() {
           />
 
           <SignalTiles frame={current} />
+
+          <div className="border-t border-hairline pt-3.5">
+            <HazardWatch
+              hazards={hazards}
+              detections={current?.hazards}
+              onAdd={addHazard}
+              onRemove={removeHazard}
+              busy={hazardBusy}
+              disabled={s.health?.model?.loaded === false}
+            />
+          </div>
         </section>
 
         {/* ------------------------------- where is it going / what to do --- */}

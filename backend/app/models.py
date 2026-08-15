@@ -73,6 +73,10 @@ class Frame(Base):
     # and the corner coordinates it was measured at.
     zones_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
+    # Zero-shot hazard detections for this frame (pipeline/hazards.py), stored
+    # as a JSON list. NULL when no detectors are registered or CLIP is down.
+    hazards_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+
     # --- step 3: fusion + smoothing ---
     wetness_raw: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     wetness_smoothed: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

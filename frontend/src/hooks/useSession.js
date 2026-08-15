@@ -178,6 +178,15 @@ export function useSession() {
     }
   }, [ensureSession]);
 
+  // ---- live camera ---------------------------------------------------------
+  /** Open a session the live camera can push single frames into. */
+  const startLiveSession = useCallback(async () => {
+    setError(null);
+    const created = await ensureSession("Live camera", "images");
+    setExpectedTotal(0);
+    return created.id;
+  }, [ensureSession]);
+
   const present = frames.filter(Boolean);
   const current = frames[selected] || present[present.length - 1] || null;
 
@@ -198,5 +207,8 @@ export function useSession() {
     runDemo,
     uploadImages,
     uploadVideo,
+    startLiveSession,
+    pushFrame,
+    setError,
   };
 }

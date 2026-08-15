@@ -70,6 +70,17 @@ export const api = {
     return request(`/api/sessions/${id}/frames`, { method: "POST", body: form });
   },
 
+  listHazards: () => request("/api/hazards"),
+
+  addHazard: (label) =>
+    request("/api/hazards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label, prompts: [] }),
+    }),
+
+  removeHazard: (id) => request(`/api/hazards/${id}`, { method: "DELETE" }),
+
   uploadVideo: (id, file) => {
     const form = new FormData();
     form.append("file", file);

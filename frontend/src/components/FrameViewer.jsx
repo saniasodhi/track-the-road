@@ -7,12 +7,41 @@ import { mediaUrl } from "../api/client";
 import ConditionBadge from "./ConditionBadge";
 import ZoneOverlay from "./ZoneOverlay";
 
-export default function FrameViewer({ frame, index, total, empty, showZones, onToggleZones }) {
+export default function FrameViewer({
+  frame, index, total, empty, showZones, onToggleZones,
+  videoRef, live, liveStarting,
+}) {
   const hasZones = Boolean(frame?.zones?.length);
 
   return (
     <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-hairline bg-surface">
-      {frame ? (
+      {/* The live feed sits above the still, so the picture never goes blank
+          between captures — you see the camera continuously and the analysis
+          catches up underneath it. */}
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ display: live || liveStarting ? "block" : "none" }}
+      />
+
+      {live && (
+        <div className="absolute left-4 top-16 z-10 flex items-center gap-2 rounded-md border border-hairline bg-surface/90 px-2.5 py-1.5">
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: "#E10600" }}
+          />
+          <span
+            className="text-micro uppercase"
+            style={{ color: "#E10600", fontWeight: 500, letterSpacing: "0.16em" }}
+          >
+            Live
+          </span>
+        </div>
+      )}
+
+      {live ? null : frame ? (
         <img
           key={frame.id}
           src={mediaUrl(frame.image_url)}
@@ -20,7 +49,7 @@ export default function FrameViewer({ frame, index, total, empty, showZones, onT
           className="anim-fade-in h-full w-full object-cover"
           draggable={false}
         />
-      ) : (
+      ) : liveStarting ? null : (
         <div className="flex h-full w-full items-center justify-center bg-surface-sunk">
           <p className="max-w-[280px] text-center text-body text-ink-muted">{empty}</p>
         </div>

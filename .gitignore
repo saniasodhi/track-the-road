@@ -40,3 +40,6 @@ Thumbs.db
 
 # NOTE: backend/data/samples/ is deliberately NOT ignored. Those 16 frames are
 # committed so the demo works on a fresh clone with no extra steps.
+
+# Personal working notes - deliberately NOT part of the published project
+PROJECT_PROGRESS.md

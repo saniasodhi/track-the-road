@@ -138,10 +138,14 @@ export default function Landing({ health, onStart, leaving }) {
           </span>
         </h1>
 
-        <p className="mt-5 max-w-[54ch] text-[15px] leading-[1.6] text-canvas/70">
+        <p className="mt-5 max-w-[56ch] text-[15px] leading-[1.6] text-canvas/70">
           A vision-language model and classical optics, read together across a sequence of
           frames — because you cannot tell from one photograph whether a wet road is drying
           or getting worse.
+        </p>
+
+        <p className="mt-3 max-w-[56ch] text-[13.5px] leading-[1.6] text-canvas/50">
+          Point it at a live camera. Teach it a new hazard by typing one sentence.
         </p>
 
         <button
