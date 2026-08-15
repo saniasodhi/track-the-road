@@ -187,6 +187,30 @@ export function useSession() {
     return created.id;
   }, [ensureSession]);
 
+  /**
+   * Re-score the frames already on screen against the detectors that exist
+   * now. Called after a detector is added, because the frames you are looking
+   * at were analysed before it existed and would otherwise show it with no
+   * reading at all.
+   */
+  const rescoreHazards = useCallback(async () => {
+    const active = session;
+    if (!active) return;
+    try {
+      const res = await api.rescoreHazards(active.id);
+      if (res.frames?.length) {
+        setFrames((prev) => {
+          const next = [...prev];
+          res.frames.forEach((f) => { next[f.frame_index] = f; });
+          return next;
+        });
+      }
+    } catch {
+      // A failed re-score leaves the previous readings in place, which is a
+      // perfectly good state - the new detector simply has no reading yet.
+    }
+  }, [session]);
+
   const present = frames.filter(Boolean);
   const current = frames[selected] || present[present.length - 1] || null;
 
@@ -209,6 +233,7 @@ export function useSession() {
     uploadVideo,
     startLiveSession,
     pushFrame,
+    rescoreHazards,
     setError,
   };
 }

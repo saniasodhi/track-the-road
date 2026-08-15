@@ -161,6 +161,10 @@ export default function App() {
     try {
       const res = await api.addHazard(label);
       setHazards((prev) => [...prev, res.hazard]);
+      // Score it against the frames already on screen, so the detector you
+      // just created has a reading immediately instead of waiting for the
+      // next frame to arrive.
+      await s.rescoreHazards();
     } catch (err) {
       s.setError(err.message);
     } finally {

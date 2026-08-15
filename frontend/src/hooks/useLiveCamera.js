@@ -42,6 +42,11 @@ export function useLiveCamera({ onFrame, onError }) {
     }
     if (videoRef.current) videoRef.current.srcObject = null;
     busyRef.current = false;
+    // Clearing the session id is what stops a capture that is already in
+    // flight from delivering its result. Without this, stopping the camera and
+    // immediately starting a demo could drop one stray live frame into the
+    // middle of that demo.
+    sessionRef.current = null;
     setActive(false);
     setStarting(false);
   }, []);
@@ -69,7 +74,13 @@ export function useLiveCamera({ onFrame, onError }) {
 
       const file = new File([blob], `live_${indexRef.current}.jpg`, { type: "image/jpeg" });
       indexRef.current += 1;
-      const frame = await api.uploadFrame(sessionRef.current, file);
+      const target = sessionRef.current;
+      const frame = await api.uploadFrame(target, file);
+
+      // The camera may have been stopped, or pointed at a new session, while
+      // this request was in the air. Deliver the result only if it still
+      // belongs to the session that is on screen.
+      if (sessionRef.current !== target) return;
       setCaptured((n) => n + 1);
       onFrame?.(frame);
     } catch (err) {
