@@ -69,6 +69,13 @@ def frame_to_dict(frame: Frame, detail: dict | None = None) -> dict:
         except (ValueError, AttributeError) as exc:
             log.warning("Frame %s has unreadable hazard data: %s", frame.id, exc)
 
+    forecast = None
+    if frame.forecast_json:
+        try:
+            forecast = json.loads(frame.forecast_json)
+        except (ValueError, AttributeError) as exc:
+            log.warning("Frame %s has unreadable forecast data: %s", frame.id, exc)
+
     return {
         "id": frame.id,
         "session_id": frame.session_id,
@@ -105,6 +112,9 @@ def frame_to_dict(frame: Frame, detail: dict | None = None) -> dict:
         "hazards_triggered": [h for h in hazards if h.get("triggered")],
         # Exposure verdict. `light_ok` false means the number is still shown but
         # the recommendation has been replaced with a hold.
+        # Exponential time-to-dry fit. Null unless the session has a real
+        # timeline and the curve genuinely supports a forecast.
+        "forecast": forecast,
         "light_level": frame.light_level,
         "light_ok": frame.light_level == "ok",
         "light_note": (detail.get("light") or {}).get("note"),

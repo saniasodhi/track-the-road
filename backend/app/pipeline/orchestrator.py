@@ -45,7 +45,8 @@ from sqlalchemy.orm import Session as DbSession
 
 from ..db import CONFIG_DIR
 from ..models import Frame, Session as TrackSession
-from . import cv_features, smoothing, trend as trend_mod, zones as zones_mod
+from . import (cv_features, forecast as forecast_mod, smoothing,
+               trend as trend_mod, zones as zones_mod)
 from .clip_classifier import ClipTrackClassifier, clip_wetness_from_probs
 from .hazards import HazardWatch
 
@@ -127,7 +128,8 @@ def _history(db: DbSession, session_id: int) -> tuple[list[float], list[float], 
     """
     rows = db.execute(
         select(Frame.wetness_raw, Frame.wetness_smoothed, Frame.state,
-               Frame.clip_wetness, Frame.physical_wetness, Frame.model_used)
+               Frame.clip_wetness, Frame.physical_wetness, Frame.model_used,
+               Frame.timestamp_s)
         .where(Frame.session_id == session_id)
         .order_by(Frame.frame_index)
     ).all()
@@ -140,7 +142,8 @@ def _history(db: DbSession, session_id: int) -> tuple[list[float], list[float], 
     if rows:
         last_state = rows[-1][2]
         prev_band = "DAMP" if last_state == "DRYING" else last_state
-    return raws, smoothed, prev_band, gaps
+    times = [r[6] for r in rows]
+    return raws, smoothed, prev_band, gaps, times
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +213,7 @@ def process_frame(
         wetness_raw = cv_features.fuse(clip_w, physical, clip_weight=CLIP_WEIGHT)
 
     # ---------------- STEP 3: smooth, then stabilise the band ----------------
-    raw_hist, smooth_hist, prev_band, gap_hist = _history(db, session.id)
+    raw_hist, smooth_hist, prev_band, gap_hist, time_hist = _history(db, session.id)
     raw_hist = raw_hist + [wetness_raw]
     wetness_smoothed = smoothing.ewma(raw_hist)
     smooth_hist = smooth_hist + [wetness_smoothed]
@@ -237,6 +240,14 @@ def process_frame(
     zone_cells = zones_mod.analyse_zones(bgr, wetness_smoothed, physical)
     zone_summary = zones_mod.summarise(zone_cells, wetness_smoothed)
 
+    # ---------------- Time-to-dry forecast -----------------------------------
+    # Only meaningful when the timestamps are real wall-clock seconds, which is
+    # why this returns None for the bundled demo and lights up for a genuine
+    # timed capture.
+    drying_forecast = forecast_mod.forecast_drying(
+        time_hist + [float(timestamp_s)], smooth_hist
+    )
+
     latency_ms = (time.perf_counter() - started) * 1000.0
 
     frame = Frame(
@@ -260,6 +271,7 @@ def process_frame(
         model_used=model_used,
         latency_ms=round(latency_ms, 1),
         light_level=light["level"],
+        forecast_json=json.dumps(drying_forecast) if drying_forecast else None,
         zones_json=json.dumps({"cells": zone_cells, "summary": zone_summary}),
         hazards_json=json.dumps(hazard_hits) if hazard_hits else None,
     )

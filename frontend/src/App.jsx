@@ -387,6 +387,27 @@ export default function App() {
                 : "Waiting for the first frame."}
             </p>
 
+            {/* Time-to-dry, in minutes. Only present when the session has a
+                real timeline and the curve actually supports a forecast - see
+                pipeline/forecast.py. Given its own line because "dry in about
+                nine minutes" is the most actionable thing on the screen. */}
+            {current?.forecast?.sentence && (
+              <p
+                key={current.forecast.sentence}
+                className="anim-condition mt-2.5 flex items-baseline gap-2 font-display text-[17px] text-ink"
+                style={{ fontWeight: 500, letterSpacing: "-0.015em" }}
+              >
+                <span style={{ color: "#1F7A54" }}>{current.forecast.sentence}</span>
+                <span
+                  className="num text-[10px] text-ink-faint"
+                  title={`Exponential decay fit: time constant ${current.forecast.tau_minutes} min, `
+                    + `R² ${current.forecast.r_squared} over ${current.forecast.points} readings`}
+                >
+                  τ {current.forecast.tau_minutes}m · R² {current.forecast.r_squared}
+                </span>
+              </p>
+            )}
+
             {/* The road is not uniform. When one part is meaningfully worse
                 than the average, say so in words a person can act on. */}
             {current?.zone_summary?.plain && (
