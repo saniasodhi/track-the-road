@@ -207,6 +207,25 @@ async def upload_video(
 
 # ----------------------------------------------------------------------- demo
 
+def _real_timestamps(folder) -> dict:
+    """Map filename -> real elapsed seconds, from a capture manifest if present.
+
+    A timed capture (scripts/import_drying_experiment.py) records when each
+    frame was actually taken. Using that instead of the frame index is what
+    lets the forecast answer in minutes rather than frames.
+    """
+    manifest = folder / "manifest.json"
+    if not manifest.is_file():
+        return {}
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        return {f["file"]: float(f["elapsed_s"])
+                for f in data.get("frames", []) if "elapsed_s" in f}
+    except Exception as exc:
+        log.warning("Could not read timestamps from %s: %s", manifest, exc)
+        return {}
+
+
 def _resolve_or_400(source: str | None):
     try:
         return resolve_sample_dir(source)
@@ -249,12 +268,13 @@ def run_demo(session_id: int, source: str | None = None,
     session.source_type = "demo"
     db.commit()
 
+    stamps = _real_timestamps(folder)
     results = []
     for index, path in enumerate(images):
         data = path.read_bytes()
         frame, detail = process_frame(
             db, session, data, _relative_media_path(path), index,
-            timestamp_s=float(index),
+            timestamp_s=stamps.get(path.name, float(index)),
         )
         results.append(frame_to_dict(frame, detail))
 
@@ -358,9 +378,10 @@ def run_demo_step(session_id: int, index: int = 0, source: str | None = None,
         db.commit()
 
     path = images[index]
+    stamps = _real_timestamps(folder)
     frame, detail = process_frame(
         db, session, path.read_bytes(), _relative_media_path(path), index,
-        timestamp_s=float(index),
+        timestamp_s=stamps.get(path.name, float(index)),
     )
     return {
         "frame": frame_to_dict(frame, detail),

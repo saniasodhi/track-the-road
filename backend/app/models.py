@@ -78,6 +78,11 @@ class Frame(Base):
     # untrustworthy rather than silently presented as fact.
     light_level: Mapped[str] = mapped_column(String(8), default="ok", nullable=False)
 
+    # Exponential time-to-dry fit for the session up to this frame, as JSON.
+    # NULL whenever the data does not support an honest forecast, which is most
+    # of the time - see pipeline/forecast.py for the gates.
+    forecast_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+
     # Zero-shot hazard detections for this frame (pipeline/hazards.py), stored
     # as a JSON list. NULL when no detectors are registered or CLIP is down.
     hazards_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
