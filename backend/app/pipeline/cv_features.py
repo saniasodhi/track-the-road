@@ -70,6 +70,35 @@ SATURATION_WET = 0.08      # mean S of a soaked surface
 TEXTURE_DRY_LOG = 2.35     # log10(Laplacian variance) for grainy dry asphalt (~220)
 TEXTURE_WET_LOG = 1.55     # log10(Laplacian variance) for smoothed-over wet asphalt (~35)
 
+# ---------------------------------------------------------------------------
+# Low-light detection.
+#
+# The obvious mistake here is to treat "dark" as "night", because a soaked road
+# IS dark - that is exactly what the darkness cue measures. Thresholding on mean
+# brightness would flag every genuinely wet frame as unreadable.
+#
+# The real distinction is not darkness, it is INFORMATION LOSS. A wet road at
+# noon is dark but fully resolved: nothing is crushed to black, and something in
+# the frame is still bright. A road at night has most of its pixels clipped to
+# zero, where no amount of processing can recover the surface.
+#
+# Measured on our own frames:
+#
+#     soaked, daytime   mean 0.283   crushed 0.000   p95 0.569
+#     real dashcam      mean 0.323   crushed 0.000   p95 0.529
+#     dusk              mean 0.099   crushed 0.294   p95 0.231
+#     night             mean 0.024   crushed 0.914   p95 0.090
+#
+# Every daytime frame, including the wettest one, crushes 0.000. The margin to
+# the first threshold is the whole range, so this cannot misfire on wet roads.
+# ---------------------------------------------------------------------------
+
+CRUSHED_LEVEL = 16         # V below this is black: surface detail is gone
+LIGHT_LOW_CRUSHED = 0.10   # this much of the road unrecoverable -> degraded
+LIGHT_DARK_CRUSHED = 0.65  # this much -> refuse to give a confident reading
+LIGHT_LOW_P95 = 0.35       # nothing in the road brighter than this -> degraded
+LIGHT_DARK_P95 = 0.15      # -> refuse
+
 # How much each measurement contributes to the final physical score.
 WEIGHTS = {
     "shine": 0.32,
@@ -130,6 +159,12 @@ def measure_region(roi: np.ndarray) -> dict:
     # --- 2. Darkness: mean brightness, normalised to 0-1.
     mean_v = float(v.mean() / 255.0)
 
+    # Exposure diagnostics, used to tell "dark because wet" from "dark because
+    # night". Not part of the wetness score - they only decide whether the
+    # score can be trusted at all.
+    crushed_fraction = float((v < CRUSHED_LEVEL).mean())
+    p95_brightness = float(np.percentile(v, 95) / 255.0)
+
     # --- 3. Colour: mean saturation, normalised to 0-1.
     mean_s = float(s.mean() / 255.0)
 
@@ -174,6 +209,8 @@ def measure_region(roi: np.ndarray) -> dict:
         "raw": {
             "specular_fraction": round(specular_fraction, 5),
             "mean_brightness": round(mean_v, 4),
+            "crushed_fraction": round(crushed_fraction, 5),
+            "p95_brightness": round(p95_brightness, 4),
             "mean_saturation": round(mean_s, 4),
             "laplacian_variance": round(laplacian_var, 2),
         },
@@ -194,3 +231,50 @@ def fuse(clip_wetness: float, physical_wetness: float,
     cw = float(np.clip(clip_wetness, 0.0, 1.0))
     pw = float(np.clip(physical_wetness, 0.0, 1.0))
     return float(np.clip(clip_weight * cw + (1.0 - clip_weight) * pw, 0.0, 1.0))
+
+
+def assess_light(raw: dict) -> dict:
+    """Is there enough light in this frame to trust the reading?
+
+    Returns a level and a sentence explaining it:
+
+      ok    - normal exposure, the wetness score stands on its own
+      low   - some of the surface is unrecoverable; the number is still
+              produced but should not be acted on without checking
+      dark  - most of the surface is gone; we decline to give a confident
+              reading rather than inventing one
+
+    Note what is NOT used here: mean brightness. A soaked road is dark, and
+    judging on brightness alone would reject exactly the frames the product
+    exists to read.
+    """
+    crushed = raw.get("crushed_fraction", 0.0)
+    p95 = raw.get("p95_brightness", 1.0)
+
+    if crushed >= LIGHT_DARK_CRUSHED or p95 <= LIGHT_DARK_P95:
+        return {
+            "level": "dark",
+            "ok": False,
+            "note": (f"Too dark to read - {crushed * 100:.0f}% of the road surface is "
+                     f"crushed to black. No confident reading is possible."),
+            "crushed_fraction": round(crushed, 4),
+            "p95_brightness": round(p95, 4),
+        }
+
+    if crushed >= LIGHT_LOW_CRUSHED or p95 <= LIGHT_LOW_P95:
+        return {
+            "level": "low",
+            "ok": False,
+            "note": (f"Low light - {crushed * 100:.0f}% of the surface is lost in "
+                     f"shadow. Treat this reading as indicative only."),
+            "crushed_fraction": round(crushed, 4),
+            "p95_brightness": round(p95, 4),
+        }
+
+    return {
+        "level": "ok",
+        "ok": True,
+        "note": None,
+        "crushed_fraction": round(crushed, 4),
+        "p95_brightness": round(p95, 4),
+    }

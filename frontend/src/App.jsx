@@ -348,6 +348,35 @@ export default function App() {
               <ConditionBadge state={current?.state} />
             </div>
 
+            {/* When the frame cannot be read, say so above everything else -
+                before the number, so nobody acts on it by accident. */}
+            {current && !current.light_ok && (
+              <div
+                key={current.light_level}
+                className="anim-condition mt-3 flex items-start gap-2.5 rounded-lg border px-3 py-2.5"
+                style={{
+                  borderColor: "rgba(225,6,0,0.28)",
+                  backgroundColor: "rgba(225,6,0,0.07)",
+                }}
+              >
+                <span
+                  className="mt-[6px] inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: "#E10600" }}
+                />
+                <div>
+                  <span
+                    className="text-micro uppercase"
+                    style={{ color: "#E10600", fontWeight: 500, letterSpacing: "0.16em" }}
+                  >
+                    {current.light_level === "dark" ? "No reading" : "Low light"}
+                  </span>
+                  <p className="mt-1 text-[12.5px] leading-[1.5] text-ink-muted">
+                    {current.light_note}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <p
               key={current?.plain}
               className="anim-condition mt-3 font-display text-[21px] leading-[1.25] text-ink"
@@ -378,8 +407,11 @@ export default function App() {
 
             <div className="mt-4 flex items-end gap-5">
               <span
-                className="num text-readout text-ink"
-                style={{ fontWeight: 500 }}
+                className="num text-readout text-ink transition-opacity duration-200"
+                style={{ fontWeight: 500, opacity: current && !current.light_ok ? 0.4 : 1 }}
+                title={current && !current.light_ok
+                  ? "Shown for reference only - the light was too poor to trust this"
+                  : undefined}
               >
                 {displayed == null ? "—" : displayed.toFixed(3)}
               </span>

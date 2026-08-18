@@ -75,6 +75,11 @@ class FrameOut(BaseModel):
     eta_text: Optional[str] = None
     headline: str
 
+    # exposure: is there enough light to trust this reading?
+    light_level: Literal["ok", "low", "dark"] = "ok"
+    light_ok: bool = True
+    light_note: Optional[str] = None
+
     # provenance
     model_used: str
     latency_ms: float

@@ -73,6 +73,11 @@ class Frame(Base):
     # and the corner coordinates it was measured at.
     zones_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
+    # Whether there was enough light to trust this frame: "ok" | "low" | "dark".
+    # A reading is still produced when the light is poor - it is just marked
+    # untrustworthy rather than silently presented as fact.
+    light_level: Mapped[str] = mapped_column(String(8), default="ok", nullable=False)
+
     # Zero-shot hazard detections for this frame (pipeline/hazards.py), stored
     # as a JSON list. NULL when no detectors are registered or CLIP is down.
     hazards_json: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
