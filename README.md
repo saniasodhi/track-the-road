@@ -331,6 +331,18 @@ frontend/
 
 ---
 
+## Checking it still works
+
+`preflight.py` answers *can this machine run it*. `verify.py` answers *does it still do the right thing*:
+
+```bash
+cd backend && python scripts/verify.py
+```
+
+48 checks on the claims the demo actually makes — that the bundled sequence really goes WET → DRYING → DRY, that two runs give identical numbers, that a soaked daytime road is not mistaken for night, that a forecast is refused unless the data supports one, that a hazard detector separates wet from dry.
+
+Any of those can be broken by a one-character change to a constant, and none would raise an exception — the app would just quietly start lying. `--quick` skips anything needing CLIP and runs instantly.
+
 ## Determinism
 
 Every random seed is fixed, and smoothing state is recomputed from the database rather than held in memory. **The same input gives the same output on every run**, and running the demo twice produces an identical curve.
