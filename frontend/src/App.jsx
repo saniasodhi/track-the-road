@@ -21,6 +21,7 @@ import Landing from "./components/Landing";
 import RecommendationCard from "./components/RecommendationCard";
 import SignalTiles from "./components/SignalTiles";
 import SignalsView from "./components/SignalsView";
+import NetworkView from "./components/NetworkView";
 import TrendChart from "./components/TrendChart";
 import Uploader from "./components/Uploader";
 
@@ -87,7 +88,7 @@ const HEALTH_DOT = { ok: "#1F7A54", degraded: "#C08A00", error: "#E10600" };
 function ViewSwitch({ view, onChange }) {
   return (
     <div className="flex rounded-md border border-hairline p-[2px]">
-      {[["dashboard", "Dashboard"], ["signals", "Signals"]].map(([key, label]) => (
+      {[["dashboard", "Dashboard"], ["network", "Network"], ["signals", "Signals"]].map(([key, label]) => (
         <button
           key={key}
           type="button"
@@ -329,6 +330,15 @@ export default function App() {
             frame={current}
             frameCount={s.expectedTotal || s.present.length}
             health={s.health}
+          />
+        </main>
+      ) : view === "network" ? (
+        <main className="flex min-h-0 flex-1 flex-col">
+          <NetworkView
+            frames={s.frames}
+            selected={s.selected}
+            onSelect={s.selectFrame}
+            sessionName={s.session?.name}
           />
         </main>
       ) : (
