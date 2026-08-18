@@ -103,6 +103,11 @@ def frame_to_dict(frame: Frame, detail: dict | None = None) -> dict:
         "zone_summary": zone_summary,
         "hazards": hazards,
         "hazards_triggered": [h for h in hazards if h.get("triggered")],
+        # Exposure verdict. `light_ok` false means the number is still shown but
+        # the recommendation has been replaced with a hold.
+        "light_level": frame.light_level,
+        "light_ok": frame.light_level == "ok",
+        "light_note": (detail.get("light") or {}).get("note"),
         "model_used": frame.model_used,
         "latency_ms": frame.latency_ms,
         "cv_subscores": detail.get("cv_subscores"),

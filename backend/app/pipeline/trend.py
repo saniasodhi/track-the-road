@@ -213,10 +213,39 @@ def plain_summary(state: str, band: str, trend: str, eta_text: str | None) -> st
     return f"{sentence}."
 
 
-def build_advice(band: str, trend: str, slope: float, smoothed: float) -> dict:
-    """Everything step 4 produces, in one dictionary."""
+# What to say instead of a tyre call when the frame cannot be trusted. A
+# confident recommendation from an unreadable image is worse than no
+# recommendation, because someone might act on it.
+LOW_LIGHT_PLAIN = {
+    "low": "Too dark to read this surface reliably.",
+    "dark": "There is not enough light to see the road at all.",
+}
+
+LOW_LIGHT_ADVICE = {
+    "low": ("HOLD — VERIFY CONDITIONS",
+            "caution",
+            "Light is too poor to read the surface reliably. Keep the current "
+            "tyres and confirm by another means before changing."),
+    "dark": ("NO READING — LIGHT TOO LOW",
+             "caution",
+             "The surface is not visible in this frame. This camera cannot "
+             "advise until it has light or illumination."),
+}
+
+
+def build_advice(band: str, trend: str, slope: float, smoothed: float,
+                 light_level: str = "ok") -> dict:
+    """Everything step 4 produces, in one dictionary.
+
+    `light_level` can veto the recommendation. The wetness number is still
+    reported - hiding it would lose information - but the ADVICE becomes a hold,
+    because a confident tyre call derived from an unreadable frame is the one
+    output of this system that could actually get somebody hurt.
+    """
     state = display_state(band, trend)
     action, urgency, reason = recommend(band, trend)
+    if light_level in LOW_LIGHT_ADVICE:
+        action, urgency, reason = LOW_LIGHT_ADVICE[light_level]
     eta_frames, eta_text = estimate_crossing(smoothed, band, slope, trend)
 
     # One-line status for under the big number.
@@ -238,5 +267,8 @@ def build_advice(band: str, trend: str, slope: float, smoothed: float) -> dict:
         "eta_frames": eta_frames,
         "eta_text": eta_text,
         "headline": headline,
-        "plain": plain_summary(state, band, trend, eta_text),
+        "plain": (LOW_LIGHT_PLAIN[light_level]
+                  if light_level in LOW_LIGHT_PLAIN
+                  else plain_summary(state, band, trend, eta_text)),
+        "light_level": light_level,
     }

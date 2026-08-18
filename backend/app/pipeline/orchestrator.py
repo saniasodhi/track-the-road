@@ -197,6 +197,10 @@ def process_frame(
     cv_result = cv_features.analyze_surface(bgr)
     physical = cv_result["physical_wetness"]
 
+    # Can this frame be trusted at all? Checked before anything downstream, so
+    # a night frame is flagged rather than quietly scored.
+    light = cv_features.assess_light(cv_result["raw"])
+
     # ---------------- Fuse the two independent opinions ----------------------
     if clip_w is None:
         # Degraded mode: the physical score carries the frame on its own.
@@ -224,7 +228,8 @@ def process_frame(
     # ---------------- STEP 4: direction and advice ---------------------------
     slope = trend_mod.fit_slope(smooth_hist)
     trend_label = trend_mod.classify_trend(slope, len(smooth_hist))
-    advice = trend_mod.build_advice(band, trend_label, slope, wetness_smoothed)
+    advice = trend_mod.build_advice(band, trend_label, slope, wetness_smoothed,
+                                    light_level=light["level"])
 
     # ---------------- STEP 2b: where on the road is it wet? ------------------
     # Scored against the smoothed value so the grid does not flicker frame to
@@ -254,6 +259,7 @@ def process_frame(
         urgency=advice["urgency"],
         model_used=model_used,
         latency_ms=round(latency_ms, 1),
+        light_level=light["level"],
         zones_json=json.dumps({"cells": zone_cells, "summary": zone_summary}),
         hazards_json=json.dumps(hazard_hits) if hazard_hits else None,
     )
@@ -269,6 +275,7 @@ def process_frame(
         "eta_text": advice["eta_text"],
         "headline": advice["headline"],
         "plain": advice["plain"],
+        "light": light,
         "cv_subscores": cv_result["subscores"],
         "cv_raw": cv_result["raw"],
         "clip_error": clip_error,
@@ -284,7 +291,8 @@ def derive_detail(frame: Frame) -> dict:
     storing them.
     """
     band = "DAMP" if frame.state == "DRYING" else frame.state
-    advice = trend_mod.build_advice(band, frame.trend, frame.slope, frame.wetness_smoothed)
+    advice = trend_mod.build_advice(band, frame.trend, frame.slope, frame.wetness_smoothed,
+                                    light_level=frame.light_level)
     return {
         "band": band,
         "reason": advice["reason"],
