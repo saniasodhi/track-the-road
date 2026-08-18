@@ -12,6 +12,11 @@
  *              entirely in cv-fallback mode, because one signal has nothing to
  *              agree with.
  * Dashed lines = the DRY / DAMP / WET band boundaries at 0.25 and 0.55.
+ * Green curve  = where the surface is going, projected past the last reading
+ *              from the fitted exponential decay. Only drawn when the session
+ *              has a real timeline and the fit passed its gates, so it is
+ *              absent on the bundled demo and appears on a timed capture. The
+ *              marker sits where it crosses into DRY.
  *
  * No gridlines, no legend box. The band labels sit on the right where the eye
  * already is.
@@ -46,6 +51,39 @@ export default function TrendChart({ frames, selected, playing }) {
 
   const animate = !playing && frames.length > 1 && !hasAnimated.current;
 
+  // The forecast describes a curve in seconds; the chart is indexed by frame.
+  // Converting needs the average spacing between readings, which only means
+  // anything when the timestamps are real - the same condition the forecast
+  // itself is gated on.
+  // Project from the frame being LOOKED AT, not the last one analysed. Stepping
+  // back through a session then shows what the forecast said at that moment,
+  // which is the claim worth checking: "at minute six it said dry at eleven".
+  // The last frame of a completed dry-out has no forecast at all - there is
+  // nothing left to predict - so anchoring to it would hide the feature.
+  const anchor =
+    frames.find((f) => f.frame_index === selected) || frames[frames.length - 1];
+  const fc = anchor?.forecast;
+  const span = frames.length > 1
+    ? (frames[frames.length - 1].timestamp_s - frames[0].timestamp_s) / (frames.length - 1)
+    : 0;
+
+  const projection = [];
+  if (fc?.amplitude != null && span > 0) {
+    const tauS = fc.tau_minutes * 60;
+    const elapsed = anchor.timestamp_s - frames[0].timestamp_s;
+    const dryAtS = fc.dry_at_minutes != null ? fc.dry_at_minutes * 60 : null;
+    // Run to the crossing, or a little past the edge of the data if there is none.
+    const endS = dryAtS != null ? dryAtS + span : elapsed + span * 6;
+    const steps = 26;
+    for (let i = 0; i <= steps; i += 1) {
+      const tS = elapsed + ((endS - elapsed) * i) / steps;
+      projection.push({
+        index: anchor.frame_index + (tS - elapsed) / span,
+        projected: fc.baseline + fc.amplitude * Math.exp(-tS / tauS),
+      });
+    }
+  }
+
   const data = frames.map((f) => ({
     index: f.frame_index,
     raw: f.wetness_raw,
@@ -55,6 +93,14 @@ export default function TrendChart({ frames, selected, playing }) {
     band: f.band_low == null || f.band_high == null ? null : [f.band_low, f.band_high],
   }));
 
+  // Projection points carry no measured values, so the measured lines simply
+  // end where the data ends.
+  const series = projection.length ? [...data, ...projection] : data;
+  const crossingIndex =
+    fc?.dry_at_minutes != null && span > 0
+      ? frames[0].frame_index + (fc.dry_at_minutes * 60) / span
+      : null;
+
   return (
     <div className="h-full min-h-0 w-full">
       {data.length === 0 ? (
@@ -63,8 +109,8 @@ export default function TrendChart({ frames, selected, playing }) {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 42, bottom: 4, left: 0 }}>
-            <XAxis dataKey="index" hide />
+          <ComposedChart data={series} margin={{ top: 8, right: 42, bottom: 4, left: 0 }}>
+            <XAxis dataKey="index" type="number" domain={["dataMin", "dataMax"]} hide />
             <YAxis domain={[0, 1]} hide />
 
             {/* Signal agreement, drawn first so it sits behind everything */}
@@ -113,6 +159,37 @@ export default function TrendChart({ frames, selected, playing }) {
               dot={false}
               isAnimationActive={false}
             />
+            {/* Where it is going, and when it gets there */}
+            {projection.length > 0 && (
+              <Line
+                type="monotone"
+                dataKey="projected"
+                stroke="#1F7A54"
+                strokeWidth={1.75}
+                strokeDasharray="4 4"
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            )}
+            {crossingIndex != null && (
+              <ReferenceLine
+                x={crossingIndex}
+                stroke="#1F7A54"
+                strokeWidth={1}
+                label={{
+                  value: fc.dry_at_minutes != null
+                    ? `dry ~${fc.dry_at_minutes.toFixed(0)} min`
+                    : "",
+                  position: "insideTopRight",
+                  fill: "#1F7A54",
+                  fontSize: 10,
+                  fontFamily: "Inter, system-ui, sans-serif",
+                  fontWeight: 500,
+                }}
+              />
+            )}
+
             <Line
               type="monotone"
               dataKey="smoothed"

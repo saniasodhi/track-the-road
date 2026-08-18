@@ -166,6 +166,9 @@ def forecast_drying(timestamps_s: list[float], smoothed: list[float]) -> dict | 
 
     now = span
     out: dict = {
+        # baseline + amplitude + tau fully describe the curve, so the frontend
+        # can draw the projection itself rather than being sent a list of points.
+        "amplitude": round(amplitude, 5),
         "tau_minutes": round(tau / 60.0, 2),
         "r_squared": round(r2, 4),
         "baseline": round(baseline, 4),
