@@ -219,8 +219,16 @@ def _real_timestamps(folder) -> dict:
         return {}
     try:
         data = json.loads(manifest.read_text(encoding="utf-8"))
-        return {f["file"]: float(f["elapsed_s"])
-                for f in data.get("frames", []) if "elapsed_s" in f}
+        # A timed drying capture records `elapsed_s`; the dashcam import records
+        # `timestamp_s` (position in the source clip). Both are real seconds and
+        # both are usable as a timeline, so accept either.
+        stamps = {}
+        for f in data.get("frames", []):
+            for key in ("elapsed_s", "timestamp_s"):
+                if key in f:
+                    stamps[f["file"]] = float(f[key])
+                    break
+        return stamps
     except Exception as exc:
         log.warning("Could not read timestamps from %s: %s", manifest, exc)
         return {}
