@@ -20,6 +20,7 @@ import FrameViewer from "./components/FrameViewer";
 import Landing from "./components/Landing";
 import RecommendationCard from "./components/RecommendationCard";
 import SignalTiles from "./components/SignalTiles";
+import SignalsView from "./components/SignalsView";
 import TrendChart from "./components/TrendChart";
 import Uploader from "./components/Uploader";
 
@@ -82,6 +83,28 @@ function useCountUp(target, duration = 320) {
 
 const HEALTH_DOT = { ok: "#1F7A54", degraded: "#C08A00", error: "#E10600" };
 
+/** Two views of the same session: the calm answer, and all the working. */
+function ViewSwitch({ view, onChange }) {
+  return (
+    <div className="flex rounded-md border border-hairline p-[2px]">
+      {[["dashboard", "Dashboard"], ["signals", "Signals"]].map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={`rounded-[4px] px-2.5 py-1 text-[11.5px] transition-colors duration-200 ${
+            view === key ? "bg-ink text-canvas" : "text-ink-muted hover:text-ink"
+          }`}
+          style={{ fontWeight: 500 }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 function TopBar({ session, health, modelUsed, children }) {
   const dot = HEALTH_DOT[health?.status] || "#9C968E";
   const model = modelUsed || health?.model?.model_id || "loading…";
@@ -140,6 +163,7 @@ export default function App() {
   // The road grid is on by default - it is the difference between "the track is
   // wet" and "the track is drying but the near left is still standing in water".
   const [showZones, setShowZones] = useState(true);
+  const [view, setView] = useState("dashboard");
 
   // ---- zero-shot hazard detectors ------------------------------------------
   const [hazards, setHazards] = useState([]);
@@ -256,6 +280,7 @@ export default function App() {
           live={cam.active}
           liveStarting={cam.starting}
         />
+        <ViewSwitch view={view} onChange={setView} />
       </TopBar>
 
       {(s.error || s.status || s.health?.status === "degraded") && (
@@ -298,6 +323,15 @@ export default function App() {
         </div>
       )}
 
+      {view === "signals" ? (
+        <main className="flex min-h-0 flex-1 flex-col">
+          <SignalsView
+            frame={current}
+            frameCount={s.expectedTotal || s.present.length}
+            health={s.health}
+          />
+        </main>
+      ) : (
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_minmax(380px,38%)]">
         {/* ---------------------------------------------- what is it now --- */}
         <section className="flex min-h-0 flex-col gap-3.5 border-b border-hairline p-5 lg:border-b-0 lg:border-r">
@@ -499,6 +533,7 @@ export default function App() {
           </div>
         </section>
       </main>
+      )}
     </div>
   );
 }
