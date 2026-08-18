@@ -16,8 +16,13 @@ Give it camera frames. It answers four questions:
 | **How wet?** | A number from 0 to 1 |
 | **Where is it going?** | Improving, stable, or deteriorating |
 | **What do I do?** | Slicks, intermediates, or full wets |
+| **How long until it's safe?** | A time-to-dry estimate, in minutes |
 
 It also scores a **3×3 grid of the road**, because tracks do not dry evenly. It can tell you "the track is drying, but the near left is still standing in water."
+
+It refuses to answer when it cannot see — a frame too dark to read gets no tyre call, only a hold.
+
+Three views of the same session: **Dashboard** (the answer), **Network** (every point at once, ranked by severity), **Signals** (every number and the arithmetic behind it).
 
 Two things it does that a trained classifier cannot:
 
@@ -197,11 +202,68 @@ The slope also forecasts: *"slicks viable in about 6 frames."* If the trend is S
 
 The tyre call is a **plain lookup table**, deliberately not a model. Anything deciding whether a driver goes out on slicks must be readable and arguable by a human. Every threshold is visible in `backend/app/pipeline/trend.py`.
 
+### Forecasting the time to dry
+
+Step 4 gives a direction. The obvious next question is *how long* — and answering in frames, *"slicks viable in about 6 frames"*, is useless, because frames are not a unit anyone can act on.
+
+So when a session carries real timestamps, a second model is fitted for the forecast:
+
+```
+w(t) = w_dry + (w_0 - w_dry) * exp(-t / tau)
+```
+
+**Why not just extend the straight line?** A line is the right tool for a *direction* — robust, assumption-free, and a sign is all it has to produce. It is the wrong tool for a *forecast*. Evaporation from a thin film is roughly proportional to how much water is left, so the curve decays toward a dry baseline and flattens as it approaches. A line extrapolated through that always crosses the threshold too early.
+
+Measured against a surface with a known 11-minute time constant, forecasting while the road was still wet:
+
+| observed | exponential | straight line |
+|---|---|---|
+| 7.5 min | **1.6 min off** | 5.5 min off |
+| 13.5 min | **0.0** | 2.9 |
+| 16.5 min | **0.4** | 1.1 |
+
+Mean error 1.65 min against 3.35. More important than the average: the linear predictions were *all early*. **A straight line systematically says "safe sooner than it is"** — the wrong direction of error for a safety system.
+
+`tau`, the time constant, is the single number describing how fast a surface sheds water in given weather — the sort of thing an authority would track per site and per season.
+
+A forecast is only offered with 5+ readings over 2+ minutes of real time, a falling curve, and R² ≥ 0.80. Otherwise nothing is shown. The bundled demo is correctly refused: its frames are numbered 0–15, which is not a timeline.
+
+### Knowing when not to answer
+
+The most obvious failure of a camera-based road sensor is darkness, and a confident tyre call from a frame nobody can read is the one output here that could get somebody hurt.
+
+The naive check — "dark means night" — would break the product, because **a soaked road is dark**. That is exactly what the darkness cue measures. The real distinction is not darkness but **information loss**:
+
+| | mean brightness | **crushed to black** |
+|---|---|---|
+| dry, daytime | 0.516 | **0.000** |
+| **soaked, daytime** | **0.283** | **0.000** |
+| dusk | 0.099 | 0.294 |
+| night | 0.024 | 0.914 |
+
+A wet road at noon is dark but fully resolved. Night clips 91% of its pixels to black, where no processing recovers the surface. Every daytime frame — including the wettest — crushes exactly 0.000.
+
+When the light is poor the wetness number is still reported, but the recommendation becomes **HOLD — VERIFY CONDITIONS**, or **NO READING — LIGHT TOO LOW**. Verified: zero false positives across all 36 bundled and real demo frames.
+
+A night frame still computes about 0.52, "damp" — and that number is wrong, because darkness mimics wetness. That is the entire justification for the veto.
+
 ### If something breaks
 
 If CLIP fails to load, the pipeline falls back to the optics alone and reports `model_used: "cv-fallback"`. Every response carries that field and the dashboard always shows it. The demo degrades; it never dies.
 
 ---
+
+## Three views
+
+| View | Answers |
+|---|---|
+| **Dashboard** | What is it now, where is it going, what do I do |
+| **Network** | Which point in the survey needs attention first |
+| **Signals** | Every number the pipeline computed, and the arithmetic joining them |
+
+**Network** ranks every point in a session by severity. For the dashcam set those are 20 genuinely different places — frames 8.6 seconds apart from a moving car, about 2.2 km of real UK road. That is a mobile road survey, a real product category; it is not a simulation of fixed cameras, and for a fixed-camera session the header says so instead.
+
+**Signals** exists because the dashboard deliberately hides its working. Everything on it is measured — no filler telemetry, no placeholder gauges. Where a value is genuinely unavailable it says so rather than showing a plausible one.
 
 ## Tech stack
 
@@ -249,6 +311,8 @@ backend/
       clip_classifier.py     STEP 1  CLIP + prompt ensembling
       cv_features.py         STEP 2  shine, darkness, colour, texture
       zones.py               STEP 2b 3x3 road grid
+      hazards.py             zero-shot detectors, added at runtime
+      forecast.py            exponential time-to-dry fit
       smoothing.py           STEP 3  averaging + hysteresis
       trend.py               STEP 4  direction, DRYING, tyre table
       orchestrator.py        runs 1 to 4 in order
@@ -257,9 +321,11 @@ backend/
   data/samples/              16 synthetic frames
   data/samples_hf/           20 real frames from Hugging Face
   scripts/                   download_model, preflight, generate_samples,
-                             import_hf_dashcam, evaluate_samples
+                             import_hf_dashcam, evaluate_samples,
+                             import_drying_experiment, analyse_drying
 frontend/
-  src/components/            Landing, FrameViewer, TrendChart, ZoneOverlay, ...
+  src/components/            Landing, FrameViewer, TrendChart, ZoneOverlay,
+                             NetworkView, SignalsView, HazardWatch, ...
   src/hooks/useSession.js    all dashboard state
 ```
 
