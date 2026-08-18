@@ -33,6 +33,22 @@ MIN_SPAN_SECONDS of genuine wall-clock time before a forecast is offered. The
 bundled demo numbers its frames 0..15 and so is correctly refused - it has no
 real timeline to extrapolate.
 
+What this assumes about the camera
+----------------------------------
+That it is looking at ONE PLACE. Decay toward a dry baseline is a statement
+about a surface losing water over time, so a sequence from a moving vehicle -
+where consecutive frames are different places - has no drying curve to fit,
+only spatial variation.
+
+Nothing here can see whether the camera moved, so the gates below have to carry
+that weight. In practice they do: a route would have to produce a monotonic
+exponential decay with R2 >= 0.80 purely from how wet successive stretches of
+road happened to be, which is a demanding coincidence. Verified against the
+20-point dashcam survey in this repo - it produces no forecast on any frame.
+
+If this were deployed, a session should carry an explicit fixed-camera flag
+rather than relying on the fit being hard to satisfy by accident.
+
 Honesty gates
 -------------
 A forecast is only returned when all of these hold:
