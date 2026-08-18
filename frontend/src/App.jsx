@@ -231,6 +231,30 @@ export default function App() {
   const current = s.current;
   const displayed = useCountUp(current ? current.wetness_smoothed : null);
 
+  // Arrow keys step through the session. Worth having for its own sake, and it
+  // is the difference between clicking at a timeline during a demo and simply
+  // talking while you move through it. Ignored while typing.
+  useEffect(() => {
+    if (screen !== "dashboard") return undefined;
+    const onKey = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey) return;
+      const last = s.present.length - 1;
+      if (last < 0) return;
+      const keys = {
+        ArrowLeft: Math.max(0, s.selected - 1),
+        ArrowRight: Math.min(last, s.selected + 1),
+        Home: 0,
+        End: last,
+      };
+      if (!(e.key in keys)) return;
+      e.preventDefault();
+      s.selectFrame(keys[e.key]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [screen, s.selected, s.present.length, s.selectFrame]);
+
   const startSession = () => {
     setLeaving(true);
     setTimeout(() => setScreen("dashboard"), REDUCED_MOTION ? 0 : 420);
@@ -307,6 +331,33 @@ export default function App() {
             <>
               <span className="label-micro">Working</span>
               <span className="num text-[12px] text-ink-muted">{s.status}</span>
+              {/* A rule that fills as frames land, so twenty seconds of
+                  analysis reads as progress rather than as a pause.
+                  Transform-only, so it costs nothing. */}
+              {s.expectedTotal > 0 && (
+                <span className="ml-auto flex items-center gap-2.5">
+                  <span className="num text-[11px] text-ink-faint">
+                    {s.present.length} / {s.expectedTotal}
+                  </span>
+                  <span className="block h-px w-[120px] bg-hairline">
+                    {/* No CSS transition here on purpose. Progress must be
+                        correct even when the browser is not compositing - a
+                        transform transition simply does not advance in a
+                        background tab, which would freeze the bar at its first
+                        value while the count beside it kept climbing. Frames
+                        land about a second apart, so stepping is right anyway. */}
+                    <span
+                      className="block h-px origin-left bg-ink"
+                      style={{
+                        transform: `scaleX(${Math.min(
+                          1,
+                          s.present.length / Math.max(1, s.expectedTotal)
+                        )})`,
+                      }}
+                    />
+                  </span>
+                </span>
+              )}
             </>
           ) : (
             <>
@@ -324,6 +375,8 @@ export default function App() {
         </div>
       )}
 
+      {/* `key` on the view makes React remount on a switch, so the fade runs. */}
+      <div key={view} className="anim-fade-in flex min-h-0 flex-1 flex-col">
       {view === "signals" ? (
         <main className="flex min-h-0 flex-1 flex-col">
           <SignalsView
@@ -544,6 +597,7 @@ export default function App() {
         </section>
       </main>
       )}
+      </div>
     </div>
   );
 }
