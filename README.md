@@ -142,7 +142,9 @@ CLIP gets the bigger share because it understands *context* — it knows a wet r
 
 **Both numbers are shown separately on screen.** Two independent methods agreeing is a far stronger claim than one method being confident.
 
-**And the gap between them is free confidence.** That gap becomes the shaded band on the chart and the AGREEMENT percentage. Narrow band = both methods landed in the same place. On real footage they agree to within a few percent.
+**And the gap between them is a confidence measure that costs nothing to compute.** It becomes the shaded band on the chart and the AGREEMENT percentage. A narrow band means both methods landed in the same place.
+
+Measured on the 20 real dashcam frames: the two estimates differ by about **0.05 on the 0–1 scale**, a mean agreement of **90%** (range 80–98%). On the synthetic set agreement falls to 45% mid-transition, which is the honest reading — that is where the two methods genuinely disagree most.
 
 ### Step 2b — Where on the road is it wet?
 
@@ -173,7 +175,7 @@ Measured on the bundled frames:
 
 The dry road triggers nothing. The wet one shows elevated black-ice similarity — and that is not a bug. Wet and icy asphalt genuinely look alike, which is precisely why black ice is dangerous.
 
-Each hazard costs two dot products per frame, because it reuses the image vector CLIP already computed. Per-frame latency is unchanged at ~85 ms.
+Each hazard costs two dot products per frame, because it reuses the image vector CLIP already computed. Per-frame latency is unchanged: a median of 82 ms across the 36 bundled and real frames, ranging 68–98 ms on a laptop CPU.
 
 ### Step 3 — Stop it flickering
 
@@ -261,7 +263,7 @@ If CLIP fails to load, the pipeline falls back to the optics alone and reports `
 | **Network** | Which point in the survey needs attention first |
 | **Signals** | Every number the pipeline computed, and the arithmetic joining them |
 
-**Network** ranks every point in a session by severity. For the dashcam set those are 20 genuinely different places — frames 8.6 seconds apart from a moving car, about 2.2 km of real UK road. That is a mobile road survey, a real product category; it is not a simulation of fixed cameras, and for a fixed-camera session the header says so instead.
+**Network** ranks every point in a session by severity. For the dashcam set those are 20 genuinely different places — frames 8.6 seconds apart from a moving car. At the 30 mph shown on the dashcam's own overlay that is approximately 2.2 km of real road — an estimate from speed and elapsed time, not a measured distance. That is a mobile road survey, a real product category; it is not a simulation of fixed cameras, and for a fixed-camera session the header says so instead.
 
 **Signals** exists because the dashboard deliberately hides its working. Everything on it is measured — no filler telemetry, no placeholder gauges. Where a value is genuinely unavailable it says so rather than showing a plausible one.
 

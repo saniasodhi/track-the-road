@@ -232,6 +232,27 @@ def verify_demo() -> None:
         check("the dry frame triggers nothing",
               not any(h["triggered"] for h in watch.detect(vectors[-1], clf.logit_scale)))
 
+    section("The landing screen quotes real numbers")
+    # The landing screen shows a wetness readout beside the cross-fading
+    # frames. Those values are hard-coded, which is fine only for as long as
+    # they still match what the pipeline produces - otherwise the first thing a
+    # judge sees is a number the app no longer agrees with. Checked here so it
+    # cannot drift silently after a calibration change.
+    import re
+    landing = (BACKEND_DIR.parent / "frontend" / "src" / "components" / "Landing.jsx")
+    if not landing.is_file():
+        check("landing screen file found", False, str(landing))
+    else:
+        block = re.search(r"BUNDLED_WETNESS\s*=\s*\[(.*?)\]", landing.read_text(encoding="utf-8"), re.S)
+        quoted = [float(x) for x in re.findall(r"[\d.]+", block.group(1))] if block else []
+        actual = [round(ewma(raws[:i + 1]), 2) for i in range(len(raws))]
+        check("landing quotes one value per bundled frame",
+              len(quoted) == len(actual), f"{len(quoted)} quoted vs {len(actual)} frames")
+        if len(quoted) == len(actual):
+            worst = max(abs(a - b) for a, b in zip(quoted, actual))
+            check("landing values still match the pipeline", worst <= 0.02,
+                  f"largest difference {worst:.3f}")
+
     section("Light: no false alarms on real frames")
     bad = []
     for path in list(images) + list(hf_images):
