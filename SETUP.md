@@ -86,7 +86,7 @@ You only need these when the backend and frontend are not both on localhost, i.e
 
 **Status: already set up.** `backend/data/samples_hf/` holds 20 real frames extracted from the public Hugging Face dataset [`aap9002/UK-Road-DashCam`](https://huggingface.co/datasets/aap9002/UK-Road-DashCam) — UK roads, filmed 20 December 2024. They appear in the dashboard as the **Real dashcam** button.
 
-Verified working: all 20 frames read DAMP / INTERMEDIATES, with the two signals agreeing to within a few percent. Correct for a damp December road.
+Verified working: all 20 frames read DAMP / INTERMEDIATES, with a mean signal agreement of 90% (range 80–98%). Correct for a damp December road.
 
 Nothing to do. To rebuild them, or on a new machine:
 

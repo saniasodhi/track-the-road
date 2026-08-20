@@ -272,7 +272,7 @@ export default function SignalsView({ frame, frameCount, health }) {
         <Section label="Provenance">
           <Metric label="model" value={fb ? "cv-fallback" : "clip-vit-base-patch32"} />
           <Metric label="inference" value={frame.latency_ms.toFixed(0)} unit="ms"
-            hint="Whole pipeline: CLIP, optics, 9 zone cells, hazards, smoothing, trend" />
+            hint="Everything inside the measurement: CLIP, optics, 9 zone cells, hazard detectors, smoothing, trend and forecast" />
           <Metric label="frame" value={`${frame.frame_index + 1} of ${frameCount}`} />
           <Metric label="capture time" value={
             frame.timestamp_s != null ? `${(frame.timestamp_s / 60).toFixed(1)} min` : null} />

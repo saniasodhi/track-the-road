@@ -64,7 +64,10 @@ export default function HazardWatch({ hazards, detections, onAdd, onRemove, busy
           className="shrink-0 rounded-md border border-ink bg-ink px-3 py-1.5 text-[12px] text-canvas transition-opacity duration-200 disabled:opacity-35"
           style={{ fontWeight: 500 }}
         >
-          {adding ? "Teaching…" : "Add"}
+          {/* Not "Teaching" - nothing is being trained, and the caption two
+              lines below says exactly that. The button should not contradict
+              the claim the feature rests on. */}
+          {adding ? "Adding…" : "Add"}
         </button>
       </form>
 

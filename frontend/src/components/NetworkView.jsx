@@ -9,7 +9,9 @@
  * What a "survey point" honestly means
  * ------------------------------------
  * For the dashcam session these are 20 genuinely different places: frames
- * taken 8.6 seconds apart from a moving car, roughly 2.3 km of real UK road.
+ * taken 8.6 seconds apart from a moving car. Distance is estimated from the
+ * 30 mph shown on the dashcam's own overlay, so it is approximate - about
+ * 2.2 km - and the interface says "about" rather than stating it as measured.
  * That is a mobile road survey - a real product category, the thing Teconer
  * and Vaisala sell mobile sensors for - not a simulation of fixed cameras.
  *
