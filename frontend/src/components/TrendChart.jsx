@@ -33,6 +33,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { DRY_MAX, DAMP_MAX } from "../lib/bands";
+
 const BAND_LABEL = {
   fill: "#9C968E",
   fontSize: 10,
@@ -101,6 +103,22 @@ export default function TrendChart({ frames, selected, playing }) {
       ? frames[0].frame_index + (fc.dry_at_minutes * 60) / span
       : null;
 
+  // A fixed 0-1 axis wasted most of the plot: a session sitting between 0.42
+  // and 0.58 became a flat squiggle in a mostly empty box. Fit the axis to the
+  // data instead, but always keep BOTH band boundaries in view - they are what
+  // give the line its meaning, and a chart that scrolled them off would be
+  // prettier and less useful.
+  const values = [
+    ...data.flatMap((d) => [d.raw, d.smoothed, ...(d.band || [])]),
+    ...projection.map((p) => p.projected),
+  ].filter((v) => Number.isFinite(v));
+  const lo = Math.max(0, Math.min(...values, DRY_MAX) - 0.08);
+  const hi = Math.min(1, Math.max(...values, DAMP_MAX) + 0.08);
+  const domain = values.length ? [Number(lo.toFixed(3)), Number(hi.toFixed(3))] : [0, 1];
+
+  // Band captions sit in the middle of whatever part of each band is visible.
+  const mid = (a, b) => (Math.max(a, lo) + Math.min(b, hi)) / 2;
+
   return (
     <div className="h-full min-h-0 w-full">
       {data.length === 0 ? (
@@ -111,7 +129,7 @@ export default function TrendChart({ frames, selected, playing }) {
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={series} margin={{ top: 8, right: 42, bottom: 4, left: 0 }}>
             <XAxis dataKey="index" type="number" domain={["dataMin", "dataMax"]} hide />
-            <YAxis domain={[0, 1]} hide />
+            <YAxis domain={domain} hide />
 
             {/* Signal agreement, drawn first so it sits behind everything */}
             <Area
@@ -129,21 +147,20 @@ export default function TrendChart({ frames, selected, playing }) {
             <ReferenceLine y={0.25} stroke="#C9C4BC" strokeDasharray="3 4" strokeWidth={1} />
 
             {/* Band names, right-hand side */}
-            <ReferenceLine
-              y={0.78}
-              stroke="transparent"
-              label={{ value: "WET", position: "right", ...BAND_LABEL }}
-            />
-            <ReferenceLine
-              y={0.4}
-              stroke="transparent"
-              label={{ value: "DAMP", position: "right", ...BAND_LABEL }}
-            />
-            <ReferenceLine
-              y={0.12}
-              stroke="transparent"
-              label={{ value: "DRY", position: "right", ...BAND_LABEL }}
-            />
+            {[
+              ["WET", mid(DAMP_MAX, 1)],
+              ["DAMP", mid(DRY_MAX, DAMP_MAX)],
+              ["DRY", mid(0, DRY_MAX)],
+            ].map(([name, y]) =>
+              y > lo + 0.01 && y < hi - 0.01 ? (
+                <ReferenceLine
+                  key={name}
+                  y={y}
+                  stroke="transparent"
+                  label={{ value: name, position: "right", ...BAND_LABEL }}
+                />
+              ) : null
+            )}
 
             {/* Which frame is selected */}
             {selected != null && data.some((d) => d.index === selected) && (
