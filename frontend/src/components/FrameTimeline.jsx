@@ -38,13 +38,16 @@ export default function FrameTimeline({ frames, total, selected, onSelect }) {
                   : `Frame ${i + 1} — not analysed yet`
               }
               aria-label={`Frame ${i + 1}${done ? `, ${frame.state}` : ", pending"}`}
-              className="segment group relative h-9 flex-1 rounded-[3px] border disabled:cursor-default"
+              className="segment group relative h-6 flex-1 rounded-[2px] border disabled:cursor-default"
               style={{
-                backgroundColor: done ? conditionTint(frame.state, 0.42) : "#F3F1ED",
+                // Was 0.42 alpha at 36px tall, which read as a row of coloured
+                // blocks rather than a data strip. The timeline is a reference,
+                // not the subject.
+                backgroundColor: done ? conditionTint(frame.state, 0.24) : "#F3F1ED",
                 borderColor: active
                   ? conditionColour(frame?.state)
                   : done
-                  ? conditionTint(frame.state, 0.5)
+                  ? conditionTint(frame.state, 0.34)
                   : "#E6E3DE",
                 opacity: done ? 1 : 0.45,
                 transform: active ? "scaleY(1.12)" : "scaleY(1)",

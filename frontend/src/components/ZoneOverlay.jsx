@@ -46,9 +46,12 @@ export default function ZoneOverlay({ zones, worst, view = FULL_VIEW }) {
             <polygon
               key={z.name}
               points={z.quad.map(([x, y]) => `${x},${y}`).join(" ")}
-              fill={conditionTint(z.band, isWorst ? 0.34 : 0.18)}
-              stroke={isWorst ? conditionColour(z.band) : "rgba(255,255,255,0.5)"}
-              strokeWidth={isWorst ? 0.004 : 0.0015}
+              /* Only the cell that matters is filled. Tinting all nine buried
+                 the photograph and, because everything was coloured, made the
+                 one worth looking at indistinguishable from the rest. */
+              fill={isWorst ? conditionTint(z.band, 0.22) : "transparent"}
+              stroke={isWorst ? conditionColour(z.band) : "rgba(255,255,255,0.38)"}
+              strokeWidth={isWorst ? 2 : 1}
               vectorEffect="non-scaling-stroke"
             />
           );
@@ -65,12 +68,13 @@ export default function ZoneOverlay({ zones, worst, view = FULL_VIEW }) {
         return (
           <span
             key={z.name}
-            className="num absolute -translate-x-1/2 -translate-y-1/2 rounded-[3px] px-1 py-0.5 text-[10px]"
+            className="num absolute -translate-x-1/2 -translate-y-1/2 rounded-[3px] px-1 text-[9.5px]"
             style={{
               left: `${cx}%`,
               top: `${cy}%`,
-              backgroundColor: "rgba(255,255,255,0.86)",
-              color: conditionColour(z.band),
+              // Readable over any photograph without a solid chip covering it.
+              backgroundColor: isWorst ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.7)",
+              color: isWorst ? conditionColour(z.band) : "#12100E",
               fontWeight: isWorst ? 500 : 400,
             }}
           >
