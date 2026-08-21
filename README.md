@@ -27,7 +27,7 @@ Three views of the same session: **Dashboard** (the answer), **Network** (every 
 Two things it does that a trained classifier cannot:
 
 - **Point it at a live camera.** Frames from your webcam go through the exact same four-step pipeline as the bundled ones — no special path in the backend.
-- **Teach it a new hazard by typing one sentence.** Type "black ice" and a working detector exists ~150 ms later. No training data, no labelling, no retraining, no redeploy.
+- **Teach it a new hazard by typing one sentence.** Type "black ice" and a working detector exists ~200 ms later. No training data, no labelling, no retraining, no redeploy.
 
 ---
 
@@ -158,7 +158,7 @@ On real dashcam footage this gives: frame reads DAMP at 0.47 overall, near-left 
 
 The pipeline classifies dry / damp / wet because those are the three things we wrote descriptions for. **Nothing about the architecture is limited to three.**
 
-CLIP compares an image against *any* sentence. So a brand-new detector costs one sentence and zero training data. Type "black ice" into the dashboard and a black-ice detector exists about 150 milliseconds later — the phrasings are embedded once and cached. There is nothing to train, because there is nothing being fitted.
+CLIP compares an image against *any* sentence. So a brand-new detector costs one sentence and zero training data. Type "black ice" into the dashboard and a black-ice detector exists about 200 milliseconds later — measured end to end, browser click to scored chip — because the phrasings are embedded once and cached. There is nothing to train, because there is nothing being fitted.
 
 This is the actual reason to build on a vision-language model instead of training a classifier. A model trained on a fixed label set physically cannot gain a new class without new labelled images and a retraining run.
 
@@ -175,7 +175,7 @@ Measured on the bundled frames:
 
 The dry road triggers nothing. The wet one shows elevated black-ice similarity — and that is not a bug. Wet and icy asphalt genuinely look alike, which is precisely why black ice is dangerous.
 
-Each hazard costs two dot products per frame, because it reuses the image vector CLIP already computed. Per-frame latency is unchanged: a median of 82 ms across the 36 bundled and real frames, ranging 68–98 ms on a laptop CPU.
+Each hazard costs two dot products per frame, because it reuses the image vector CLIP already computed. Per-frame latency is unchanged by adding detectors: a median of **308 ms** end-to-end across the 36 bundled and real frames, with the middle 80% between 274 and 381 ms, measured on an i5-12450H laptop CPU. Of that, CLIP's image encoder is ~250 ms and the whole classical-optics stage is ~6 ms. The first frame of a session costs about 1.5 s while the tensor allocator warms up.
 
 ### Step 3 — Stop it flickering
 
@@ -341,7 +341,7 @@ frontend/
 cd backend && python scripts/verify.py
 ```
 
-48 checks on the claims the demo actually makes — that the bundled sequence really goes WET → DRYING → DRY, that two runs give identical numbers, that a soaked daytime road is not mistaken for night, that a forecast is refused unless the data supports one, that a hazard detector separates wet from dry.
+50 checks on the claims the demo actually makes — that the bundled sequence really goes WET → DRYING → DRY, that two runs give identical numbers, that a soaked daytime road is not mistaken for night, that a forecast is refused unless the data supports one, that a hazard detector separates wet from dry.
 
 Any of those can be broken by a one-character change to a constant, and none would raise an exception — the app would just quietly start lying. `--quick` skips anything needing CLIP and runs instantly.
 
